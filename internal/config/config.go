@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	HTTP     HTTPConfig     `yaml:"http"`
+	Logging  LoggerConfig   `yaml:"logging"`
 }
 
 type DatabaseConfig struct {
@@ -27,6 +29,13 @@ type DatabaseConfig struct {
 	MaxIdleConns    int           `yaml:"max_idle_conns"`
 	MaxOpenConns    int           `yaml:"max_open_conns"`
 	ConnMaxLifetime time.Duration `yaml:"conn_max_life_time"`
+}
+
+type LoggerConfig struct {
+	FilePath string `yaml:"filePath"`
+	Encoding string `yaml:"encoding"`
+	Level    string `yaml:"level"`
+	Logger   string `yaml:"logger"`
 }
 
 type HTTPConfig struct {
@@ -81,6 +90,12 @@ func Load() (*Config, error) {
 		}
 
 		config = &cfg
+
+		http_port, err := strconv.Atoi(os.Getenv("PORT"))
+		if http_port != 0 && err == nil {
+			config.HTTP.Port = http_port
+
+		}
 	})
 
 	return config, loadErr
@@ -113,5 +128,18 @@ func validateConfig(cfg *Config) error {
 		return fmt.Errorf("http.port is invalid or missing")
 	}
 
+	if cfg.Logging.Logger == "" {
+		return fmt.Errorf("Logging.Logger is missing")
+	}
+	if cfg.Logging.Encoding == "" {
+		return fmt.Errorf("Logging.Encoding is missing")
+	}
+
+	if cfg.Logging.FilePath == "" {
+		return fmt.Errorf("Logging.FilePath is missing")
+	}
+	if cfg.Logging.Level == "" {
+		return fmt.Errorf("Logging.Level is missing")
+	}
 	return nil
 }
