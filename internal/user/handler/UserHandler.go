@@ -22,6 +22,6 @@ func NewHandler(conf *config.Config, db db.DbService) *UserHandler {
 }
 
 func (h *UserHandler) GetUsers(c echo.Context) error {
-	users := h.service.GetUsers(dto.UserRequest{Name: "aa"})
+	users := h.service.GetUsers(c.Request().Context(), dto.UserRequest{Name: "aa", Page: 1})
 	return c.JSON(http.StatusOK, users)
 }
