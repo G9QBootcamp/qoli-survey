@@ -13,9 +13,8 @@ import (
 
 // Config struct holds the application configuration
 type Config struct {
-	Database  DatabaseConfig  `yaml:"database"`
-	HTTP      HTTPConfig      `yaml:"http"`
-	WebSocket WebSocketConfig `yaml:"websocket"`
+	Database DatabaseConfig `yaml:"database"`
+	HTTP     HTTPConfig     `yaml:"http"`
 }
 
 type DatabaseConfig struct {
@@ -31,11 +30,6 @@ type DatabaseConfig struct {
 }
 
 type HTTPConfig struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
-}
-
-type WebSocketConfig struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
 }
@@ -117,13 +111,6 @@ func validateConfig(cfg *Config) error {
 	}
 	if cfg.HTTP.Port <= 0 {
 		return fmt.Errorf("http.port is invalid or missing")
-	}
-
-	if cfg.WebSocket.Host == "" {
-		return fmt.Errorf("websocket.host is missing")
-	}
-	if cfg.WebSocket.Port <= 0 {
-		return fmt.Errorf("websocket.port is invalid or missing")
 	}
 
 	return nil
