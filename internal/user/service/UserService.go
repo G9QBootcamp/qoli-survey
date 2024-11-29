@@ -6,16 +6,19 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 )
 
+type IUserService interface {
+	GetUsers(dto.UserRequest) []*dto.UserResponse
+}
 type UserService struct {
 	conf *config.Config
-	repo *repository.UserRepository
+	repo repository.IUserRepository
 }
 
-func New(conf *config.Config, repo *repository.UserRepository) *UserService {
+func New(conf *config.Config, repo repository.IUserRepository) *UserService {
 	return &UserService{conf: conf, repo: repo}
 }
 
-func (s *UserService) GetUsers() []*dto.UserResponse {
+func (s *UserService) GetUsers(dto.UserRequest) []*dto.UserResponse {
 	users := s.repo.GetUsers()
 	usersResponse := []*dto.UserResponse{}
 

@@ -5,6 +5,10 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 )
 
+type IUserRepository interface {
+	GetUsers() []*models.User
+}
+
 type UserRepository struct {
 	db db.DbService
 }
