@@ -29,15 +29,8 @@ func main() {
 	}
 
 	s := server.NewHttpServer()
-	registerRouters(conf, dbService, s)
+	router.RegisterRoutes(conf, dbService, s)
 
 	s.Start(fmt.Sprintf("%s:%d", conf.HTTP.Host, conf.HTTP.Port))
 
-}
-
-func registerRouters(conf *config.Config, db db.DbService, server *server.Server) {
-	userRouter := router.NewUserRouter(conf, db, server.Echo)
-	userRouter.RegisterRoutes()
-
-	//...
 }
