@@ -31,18 +31,19 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 func (h *UserHandler) CreateUser(c echo.Context) error {
 	var req dto.UserCreateRequest
 
-	// Bind the request body to the DTO
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 	}
 
-	// Call the service layer
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
 	user, err := h.service.CreateUser(c.Request().Context(), req)
 	if err != nil {
 		// Handle other errors as internal server errors
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	// Return the created user
 	return c.JSON(http.StatusCreated, user)
 }
