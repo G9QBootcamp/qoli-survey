@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/G9QBootcamp/qoli-survey/pkg/validation"
+	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 )
 
@@ -13,6 +15,10 @@ type Server struct {
 
 func NewHttpServer() *Server {
 	e := echo.New()
+
+	validate := validator.New()
+	validation.RegisterCustomValidation(validate)
+	e.Validator = &validation.CustomValidator{Validator: validate}
 
 	return &Server{Echo: e}
 }
