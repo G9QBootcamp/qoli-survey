@@ -127,6 +127,20 @@ services:
       - postgres
       - elasticsearch
     restart: unless-stopped
+  ##################### FILE MAINTENANCE #################
+  file-maintenance:
+    build:
+      context: ./file-maintenance
+    container_name: file-maintenance
+    volumes:
+      - logs:/data:rw # Monitor the logs volume
+      - ./scripts:/scripts:ro # Include the scripts directory
+    environment:
+      - CRON_SCHEDULE=0 * * * * # Runs every hour
+      - TARGET_DIR=/data
+    entrypoint: ["/scripts/start.sh"]
+    restart: always
+
 volumes:
   postgres:
   logs:
