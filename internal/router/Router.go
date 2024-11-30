@@ -13,6 +13,9 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 	server.Echo.Use(middlewares.DefaultStructuredLogger(conf, logger))
 
 	userRouter := NewUserRouter(conf, db, server.Echo, logger)
+	surveyRouter := NewSurveyRouter(conf, db, server.Echo, logger)
+
 	userRouter.RegisterRoutes()
+	surveyRouter.RegisterRoutes()
 	// Additional routers...
 }
