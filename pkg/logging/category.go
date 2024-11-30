@@ -36,6 +36,7 @@ const (
 	UserNotAuthorized   SubCategory = "UserNotAuthorized"
 	DefaultRoleNotFound SubCategory = "DefaultRoleNotFound"
 	FailedToCreateUser  SubCategory = "FailedToCreateUser"
+	FailedToGetUsers    SubCategory = "FailedToGetUsers"
 
 	RecoverError SubCategory = "Recover Error"
 )

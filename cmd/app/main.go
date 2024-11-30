@@ -36,7 +36,7 @@ func main() {
 	}
 
 	s := server.NewHttpServer()
-	router.RegisterRoutes(conf, dbService, s)
+	router.RegisterRoutes(conf, dbService, s, logger)
 
 	s.Start(fmt.Sprintf("%s:%d", conf.HTTP.Host, conf.HTTP.Port))
 
