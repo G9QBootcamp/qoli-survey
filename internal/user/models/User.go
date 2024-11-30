@@ -15,5 +15,6 @@ type User struct {
 	LastName      string
 	DateOfBirth   time.Time
 	City          string
-	WalletBalance float64 `gorm:"default:0"`
+	WalletBalance float64         `gorm:"default:0"`
+	Surveys       []models.Survey `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE;"`
 }
