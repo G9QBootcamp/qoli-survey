@@ -37,13 +37,6 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 	// Call the service layer
 	user, err := h.service.CreateUser(c.Request().Context(), req)
 	if err != nil {
-		// Handle validation errors separately
-		if util.IsValidationError(err) {
-			return c.JSON(http.StatusUnprocessableEntity, map[string]string{
-				"error": "validation failed",
-			})
-		}
-
 		// Handle other errors as internal server errors
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
