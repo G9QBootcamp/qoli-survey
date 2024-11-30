@@ -22,6 +22,32 @@ func NewHandler(conf *config.Config, db db.DbService) *UserHandler {
 }
 
 func (h *UserHandler) GetUsers(c echo.Context) error {
-	users := h.service.GetUsers(c.Request().Context(), dto.UserRequest{Name: "aa", Page: 1})
+	users := h.service.GetUsers(c.Request().Context(), dto.UserGetRequest{Name: "aa", Page: 1})
 	return c.JSON(http.StatusOK, users)
+}
+
+func (h *UserHandler) CreateUser(c echo.Context) error {
+	var req dto.UserCreateRequest
+
+	// Bind the request body to the DTO
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	// Call the service layer
+	user, err := h.service.CreateUser(c.Request().Context(), req)
+	if err != nil {
+		// Handle validation errors separately
+		if util.IsValidationError(err) {
+			return c.JSON(http.StatusUnprocessableEntity, map[string]string{
+				"error": "validation failed",
+			})
+		}
+
+		// Handle other errors as internal server errors
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Return the created user
+	return c.JSON(http.StatusCreated, user)
 }
