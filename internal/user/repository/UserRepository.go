@@ -7,6 +7,7 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
+	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"gorm.io/gorm"
 )
 
@@ -17,11 +18,12 @@ type IUserRepository interface {
 }
 
 type UserRepository struct {
-	db db.DbService
+	db     db.DbService
+	logger logging.Logger
 }
 
-func NewUserRepository(db db.DbService) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db db.DbService, logger logging.Logger) *UserRepository {
+	return &UserRepository{db: db, logger: logger}
 }
 
 func (r *UserRepository) GetUsers(ctx context.Context, filters dto.UserFilters) ([]models.User, error) {
@@ -56,6 +58,8 @@ func (r *UserRepository) GetUsers(ctx context.Context, filters dto.UserFilters) 
 		query = query.Offset(filters.Offset)
 	}
 	if err := query.Find(&users).Error; err != nil {
+		r.logger.Error(logging.Database, logging.Select, "get users error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+
 		return nil, err
 	}
 
@@ -74,5 +78,8 @@ func (r *UserRepository) GetUserByID(ctx context.Context, userID uint) (*models.
 
 func (r *UserRepository) CreateUser(ctx context.Context, user models.User) (models.User, error) {
 	err := r.db.GetDb().WithContext(ctx).Create(&user).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Insert, "create user error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
 	return user, err
 }

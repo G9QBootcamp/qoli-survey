@@ -8,6 +8,7 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/service"
+	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"github.com/labstack/echo/v4"
 )
 
@@ -15,10 +16,11 @@ type UserHandler struct {
 	conf    *config.Config
 	db      db.DbService
 	service service.IUserService
+	logger  logging.Logger
 }
 
-func NewHandler(conf *config.Config, db db.DbService) *UserHandler {
-	return &UserHandler{conf: conf, db: db, service: service.New(conf, repository.NewUserRepository(db))}
+func NewHandler(conf *config.Config, db db.DbService, logger logging.Logger) *UserHandler {
+	return &UserHandler{conf: conf, db: db, service: service.New(conf, repository.NewUserRepository(db, logger), logger), logger: logger}
 }
 
 func (h *UserHandler) GetUsers(c echo.Context) error {
@@ -37,13 +39,6 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 	// Call the service layer
 	user, err := h.service.CreateUser(c.Request().Context(), req)
 	if err != nil {
-		// Handle validation errors separately
-		if util.IsValidationError(err) {
-			return c.JSON(http.StatusUnprocessableEntity, map[string]string{
-				"error": "validation failed",
-			})
-		}
-
 		// Handle other errors as internal server errors
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
