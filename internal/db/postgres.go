@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
+	"github.com/G9QBootcamp/qoli-survey/internal/db/migrations"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -29,6 +30,12 @@ func (p *postgresDb) Init(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
+
+	err = migrations.AutoMigrate(p.dbClient)
+	if err != nil {
+		return err
+	}
+
 	sqlDb.SetMaxIdleConns(cfg.Database.MaxIdleConns)
 	sqlDb.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	sqlDb.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime * time.Minute)
