@@ -10,7 +10,7 @@ type Vote struct {
 	VoterID    uint        `gorm:"not null"`
 	QuestionID uint        `gorm:"not null"`
 	Answer     string      `gorm:"not null"`
-	duration   int         `gorm:"default:0"`
+	Duration   int         `gorm:"default:0"`
 	Voter      models.User `gorm:"foreignKey:VoterID;references:ID;constraint:OnDelete:CASCADE;"`
 	Question   Survey      `gorm:"foreignKey:QuestionID;references:ID;constraint:OnDelete:CASCADE;"`
 }
