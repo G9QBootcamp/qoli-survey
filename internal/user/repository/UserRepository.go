@@ -50,6 +50,7 @@ func (r *UserRepository) GetUsers(ctx context.Context, filters dto.UserFilters) 
 	if filters.YearOfBirth > 0 {
 		query = query.Where("EXTRACT(YEAR FROM date_of_birth) = ?", filters.YearOfBirth)
 	}
+	query = query.Where("deleted_at is null")
 
 	if filters.Limit > 0 {
 		query = query.Limit(filters.Limit)
