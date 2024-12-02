@@ -27,8 +27,12 @@ type UserFilters struct {
 	Limit       int
 }
 
-type UserCreateRequest struct {
-	NationalID string `json:"national_id" validate:"required,nationalid"`
-	Email      string `json:"email" validate:"required,email"`
-	Password   string `json:"password" validate:"required,min=8"`
+type SignupRequest struct {
+	NationalID  string    `json:"national_id" validate:"required,national_id"`
+	Email       string    `json:"email" validate:"required,email"`
+	Password    string    `json:"password" validate:"required,min=8"`
+	FirstName   string    `json:"first_name"`
+	LastName    string    `json:"last_name"`
+	City        string    `json:"city"`
+	DateOfBirth time.Time `json:"date_of_birth"`
 }
