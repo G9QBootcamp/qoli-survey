@@ -7,6 +7,7 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/repository"
+	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"golang.org/x/net/context"
 )
 
@@ -14,12 +15,13 @@ type ISurveyService interface {
 	CreateSurvey(c context.Context, req dto.SurveyCreateRequest) (*dto.SurveyResponse, error)
 }
 type SurveyService struct {
-	conf *config.Config
-	repo repository.ISurveyRepository
+	conf   *config.Config
+	repo   repository.ISurveyRepository
+	logger logging.Logger
 }
 
-func New(conf *config.Config, repo repository.ISurveyRepository) *SurveyService {
-	return &SurveyService{conf: conf, repo: repo}
+func New(conf *config.Config, repo repository.ISurveyRepository, logger logging.Logger) *SurveyService {
+	return &SurveyService{conf: conf, repo: repo, logger: logger}
 }
 
 func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequest) (*dto.SurveyResponse, error) {

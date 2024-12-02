@@ -21,7 +21,7 @@ type SurveyHandler struct {
 }
 
 func NewHandler(conf *config.Config, db db.DbService, logger logging.Logger) *SurveyHandler {
-	return &SurveyHandler{conf: conf, db: db, service: service.New(conf, repository.NewSurveyRepository(db, logger))}
+	return &SurveyHandler{conf: conf, db: db, service: service.New(conf, repository.NewSurveyRepository(db, logger), logger), logger: logger}
 }
 
 func (h *SurveyHandler) CreateSurvey(c echo.Context) error {
@@ -37,6 +37,7 @@ func (h *SurveyHandler) CreateSurvey(c echo.Context) error {
 	}
 
 	if err := c.Validate(&req); err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in create survey api", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
 		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
 	}
 
@@ -47,4 +48,8 @@ func (h *SurveyHandler) CreateSurvey(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, survey)
+}
+
+func (h *SurveyHandler) AnswerSurvey(c echo.Context) error {
+	return c.String(200, c.Param("id"))
 }

@@ -22,7 +22,7 @@ type SurveyRepository struct {
 }
 
 func NewSurveyRepository(db db.DbService, logger logging.Logger) *SurveyRepository {
-	return &SurveyRepository{db: db}
+	return &SurveyRepository{db: db, logger: logger}
 }
 
 func (r *SurveyRepository) CreateSurvey(ctx context.Context, survey *models.Survey) error {
