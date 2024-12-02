@@ -17,5 +17,12 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 
 	userRouter.RegisterRoutes()
 	surveyRouter.RegisterRoutes()
+	
+	userRepo := repository.NewUserRepository(dbService.GetDb())
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
+
+
+	e.POST("/signup", userHandler.Signup)
 	// Additional routers...
 }
