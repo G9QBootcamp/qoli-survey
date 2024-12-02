@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
@@ -47,6 +49,7 @@ func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequ
 		AnswerTimeLimit:    survey.AnswerTimeLimit,
 	}
 
+	questionMap := make(map[string]*models.Question)
 	questionOrder := 1
 	for _, questionReq := range req.Questions {
 		question := models.Question{
@@ -84,17 +87,41 @@ func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequ
 					return nil, err
 				}
 
-				optionDTO := dto.Choice{
+				choiceDTO := dto.Choice{
 					ID:        choice.ID,
 					Text:      choice.Text,
 					IsCorrect: choice.IsCorrect,
 				}
 
-				questionDTO.Choices = append(questionDTO.Choices, optionDTO)
+				questionDTO.Choices = append(questionDTO.Choices, choiceDTO)
 			}
 		}
 
 		surveyResponseDTO.Questions = append(surveyResponseDTO.Questions, questionDTO)
+
+		questionMap[question.Text] = &question
+	}
+
+	for _, q := range req.Questions {
+		if q.Condition.QuestionText != "" && q.Condition.Answer != "" {
+			condition := q.Condition
+			targetQuestion := questionMap[q.Text]
+
+			conditionalQuestion, ok := questionMap[condition.QuestionText]
+			if !ok {
+				return nil, fmt.Errorf("condition question '%s' not found", condition.QuestionText)
+			}
+
+			choice, err := s.repo.GetChoiceByTextAndQuestion(c, condition.Answer, conditionalQuestion.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			choice.LinkedQuestionID = targetQuestion.ID
+			if err := s.repo.UpdateChoice(c, choice); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return surveyResponseDTO, nil

@@ -12,6 +12,8 @@ type ISurveyRepository interface {
 	CreateSurvey(ctx context.Context, survey *models.Survey) error
 	CreateQuestion(ctx context.Context, question *models.Question) error
 	CreateChoice(ctx context.Context, choice *models.Choice) error
+	UpdateChoice(ctx context.Context, choice *models.Choice) error
+	GetChoiceByTextAndQuestion(ctx context.Context, text string, questionID uint) (*models.Choice, error)
 }
 
 type SurveyRepository struct {
@@ -45,4 +47,22 @@ func (r *SurveyRepository) CreateChoice(ctx context.Context, choice *models.Choi
 		r.logger.Error(logging.Database, logging.Insert, "create choice error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
 	return err
+}
+
+func (r *SurveyRepository) UpdateChoice(ctx context.Context, choice *models.Choice) error {
+	err := r.db.GetDb().WithContext(ctx).Save(choice).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Select, "Get choice by text and question id error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return err
+}
+
+func (r *SurveyRepository) GetChoiceByTextAndQuestion(ctx context.Context, text string, questionID uint) (*models.Choice, error) {
+	var choice models.Choice
+	err := r.db.GetDb().WithContext(ctx).Where("text = ? AND question_id = ?", text, questionID).First(&choice).Error
+
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Select, "Get choice by text and question id error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return &choice, err
 }

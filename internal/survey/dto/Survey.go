@@ -17,13 +17,19 @@ type SurveyCreateRequest struct {
 type QuestionCreateRequest struct {
 	Text              string                `json:"text" validate:"required"`
 	HasMultipleChoice bool                  `json:"has_multiple_choice"`
-	Choices           []ChoiceCreateRequest `json:"choices"`
 	MediaUrl          string                `json:"media_url"`
+	Choices           []ChoiceCreateRequest `json:"choices"`
+	Condition         Condition             `json:"condition"`
 }
 
 type ChoiceCreateRequest struct {
 	Text      string `json:"text" validate:"required"`
 	IsCorrect bool   `json:"is_correct"`
+}
+
+type Condition struct {
+	QuestionText string `json:"question_text" validate:"required"`
+	Answer       string `json:"answer" validate:"required"`
 }
 
 type SurveyResponse struct {
