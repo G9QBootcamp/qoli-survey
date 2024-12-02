@@ -24,7 +24,11 @@ func NewHandler(conf *config.Config, db db.DbService, logger logging.Logger) *Us
 }
 
 func (h *UserHandler) GetUsers(c echo.Context) error {
-	users := h.service.GetUsers(c.Request().Context(), dto.UserGetRequest{Name: "aa", Page: 1})
+	users, err := h.service.GetUsers(c.Request().Context(), dto.UserGetRequest{Name: "aa", Page: 1})
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+
+	}
 	return c.JSON(http.StatusOK, users)
 }
 

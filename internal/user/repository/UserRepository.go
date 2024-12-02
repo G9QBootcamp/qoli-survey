@@ -15,6 +15,7 @@ type IUserRepository interface {
 	GetUsers(ctx context.Context, filters dto.UserFilters) ([]models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
 	CreateUser(ctx context.Context, user models.User) (models.User, error)
+	DeleteUser(ctx context.Context, id uint) error
 }
 
 type UserRepository struct {
@@ -49,6 +50,7 @@ func (r *UserRepository) GetUsers(ctx context.Context, filters dto.UserFilters) 
 	if filters.YearOfBirth > 0 {
 		query = query.Where("EXTRACT(YEAR FROM date_of_birth) = ?", filters.YearOfBirth)
 	}
+	query = query.Where("deleted_at is null")
 
 	if filters.Limit > 0 {
 		query = query.Limit(filters.Limit)
@@ -58,6 +60,9 @@ func (r *UserRepository) GetUsers(ctx context.Context, filters dto.UserFilters) 
 		query = query.Offset(filters.Offset)
 	}
 	if err := query.Find(&users).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return []models.User{}, nil
+		}
 		r.logger.Error(logging.Database, logging.Select, "get users error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 
 		return nil, err
@@ -82,4 +87,8 @@ func (r *UserRepository) CreateUser(ctx context.Context, user models.User) (mode
 		r.logger.Error(logging.Database, logging.Insert, "create user error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
 	return user, err
+}
+
+func (r *UserRepository) DeleteUser(ctx context.Context, id uint) error {
+	return r.db.GetDb().WithContext(ctx).Where("ID = ?", id).Delete(&models.User{}).Error
 }
