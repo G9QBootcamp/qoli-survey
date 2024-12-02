@@ -6,6 +6,7 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.5.10
+
 )
 
 require (

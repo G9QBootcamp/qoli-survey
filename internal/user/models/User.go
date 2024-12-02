@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
-
 	"gorm.io/gorm"
 )
 
