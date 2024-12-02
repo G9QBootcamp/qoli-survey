@@ -11,7 +11,7 @@ import (
 )
 
 type IUserService interface {
-	GetUsers(context.Context, dto.UserGetRequest) []*dto.UserResponse
+	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
 	CreateUser(c context.Context, req dto.UserCreateRequest) (*dto.UserResponse, error)
 }
 type UserService struct {
@@ -24,11 +24,12 @@ func New(conf *config.Config, repo repository.IUserRepository, logger logging.Lo
 	return &UserService{conf: conf, repo: repo, logger: logger}
 }
 
-func (s *UserService) GetUsers(c context.Context, r dto.UserGetRequest) []*dto.UserResponse {
+func (s *UserService) GetUsers(c context.Context, r dto.UserGetRequest) ([]*dto.UserResponse, error) {
 	userFilters := dto.UserFilters{Name: r.Name}
 	users, err := s.repo.GetUsers(c, userFilters)
 	if err != nil {
 		s.logger.Error(logging.Internal, logging.FailedToGetUsers, "error in get users", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		return nil, err
 	}
 	usersResponse := []*dto.UserResponse{}
 
@@ -43,7 +44,7 @@ func (s *UserService) GetUsers(c context.Context, r dto.UserGetRequest) []*dto.U
 			DateOfBirth: user.DateOfBirth,
 		})
 	}
-	return usersResponse
+	return usersResponse, nil
 }
 
 func (s *UserService) CreateUser(c context.Context, req dto.UserCreateRequest) (*dto.UserResponse, error) {
@@ -66,4 +67,15 @@ func (s *UserService) CreateUser(c context.Context, req dto.UserCreateRequest) (
 		NationalID: user.NationalID,
 		Email:      user.Email,
 	}, nil
+}
+
+func (s *UserService) DeleteUser(c context.Context, id uint) error {
+
+	err := s.repo.DeleteUser(c, id)
+
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToCreateUser, "error in create user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+
+	}
+	return err
 }
