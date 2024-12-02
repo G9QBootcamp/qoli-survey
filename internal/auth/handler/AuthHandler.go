@@ -4,49 +4,66 @@ import (
 	"net/http"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/auth/service"
+	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type SignupRequest struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
-}
-
-type SignupResponse struct {
-	Token string `json:"token"`
-}
-
 func Signup(repo repository.UserRepository, jwtService service.JWTService) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		req := new(SignupRequest)
+		// Bind the request to UserCreateRequest DTO
+		req := new(dto.UserCreateRequest)
 		if err := c.Bind(req); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 		}
 
-		// Hash the password in the handler
+		// Validate the input
+		if err := c.Validate(req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
+
+		// Hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to hash password"})
 		}
 
-		// Create user
+		// Create the user object
 		user := models.User{
-			Username: req.Username,
-			Password: string(hashedPassword),
+			NationalID:    req.NationalID,
+			Email:         req.Email,
+			PasswordHash:  string(hashedPassword),
+			WalletBalance: 0, // Default value
 		}
+
+		// Save the user to the database
 		if err := repo.CreateUser(&user); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create user"})
 		}
 
 		// Generate JWT token
-		token, err := jwtService.GenerateToken(user.ID, user.Username)
+		token, err := jwtService.GenerateToken(user.ID, user.Email, user.Email)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
 		}
 
-		return c.JSON(http.StatusOK, SignupResponse{Token: token})
+		// Prepare the response
+		response := dto.UserResponse{
+			ID:          user.ID,
+			NationalID:  user.NationalID,
+			Email:       user.Email,
+			FirstName:   user.FirstName,
+			LastName:    user.LastName,
+			City:        user.City,
+			DateOfBirth: user.DateOfBirth,
+		}
+
+		// Respond with the user data and token
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"user":  response,
+			"token": token,
+		})
 	}
 }
