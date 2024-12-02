@@ -1,81 +1,50 @@
 package service
 
 import (
-	"github.com/G9QBootcamp/qoli-survey/internal/config"
+	"context"
+	"errors"
+
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/util"
-	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
-	"golang.org/x/net/context"
 )
 
-type IUserService interface {
-	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
-	CreateUser(c context.Context, req dto.UserCreateRequest) (*dto.UserResponse, error)
-}
-type UserService struct {
-	conf   *config.Config
-	repo   repository.IUserRepository
-	logger logging.Logger
+type UserService interface {
+	Signup(c context.Context, password string) error
 }
 
-func New(conf *config.Config, repo repository.IUserRepository, logger logging.Logger) *UserService {
-	return &UserService{conf: conf, repo: repo, logger: logger}
+type userService struct {
+	repo repository.UserRepository
 }
 
-func (s *UserService) GetUsers(c context.Context, r dto.UserGetRequest) ([]*dto.UserResponse, error) {
-	userFilters := dto.UserFilters{Name: r.Name}
-	users, err := s.repo.GetUsers(c, userFilters)
-	if err != nil {
-		s.logger.Error(logging.Internal, logging.FailedToGetUsers, "error in get users", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
-		return nil, err
-	}
-	usersResponse := []*dto.UserResponse{}
-
-	for _, user := range users {
-		usersResponse = append(usersResponse, &dto.UserResponse{
-			ID:          user.ID,
-			NationalID:  user.NationalID,
-			Email:       user.Email,
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			City:        user.City,
-			DateOfBirth: user.DateOfBirth,
-		})
-	}
-	return usersResponse, nil
+func NewUserService(repo repository.UserRepository) UserService {
+	return &userService{repo: repo}
 }
 
-func (s *UserService) CreateUser(c context.Context, req dto.UserCreateRequest) (*dto.UserResponse, error) {
+func (s *userService) Signup(c context.Context, req dto.SignupRequest) error {
+
 	user := models.User{
-		NationalID:   req.NationalID,
+		City:         req.City,
 		Email:        req.Email,
-		PasswordHash: util.HashPassword(req.Password),
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
+		NationalID:   req.NationalID,
+		PasswordHash: req.PasswordHash,
 	}
 
-	user, err := s.repo.CreateUser(c, user)
+	// Check if email or national ID is already taken
+	if s.repo.IsEmailOrNationalIDTaken(user.Email, user.NationalID) {
+		return errors.New("email or national ID already in use")
+	}
 
+	// Hash the password
+	hashedPassword, err := util.HashPassword(password)
 	if err != nil {
-		s.logger.Error(logging.Internal, logging.FailedToCreateUser, "error in create user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
-
-		return nil, err
+		return errors.New("failed to hash password")
 	}
+	user.PasswordHash = hashedPassword
 
-	return &dto.UserResponse{
-		ID:         user.ID,
-		NationalID: user.NationalID,
-		Email:      user.Email,
-	}, nil
-}
-
-func (s *UserService) DeleteUser(c context.Context, id uint) error {
-
-	err := s.repo.DeleteUser(c, id)
-
-	if err != nil {
-		s.logger.Error(logging.Internal, logging.FailedToCreateUser, "error in create user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
-
-	}
-	return err
+	// Save the user
+	return s.repo.CreateUser(user)
 }
