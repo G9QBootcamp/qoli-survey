@@ -20,6 +20,6 @@ func NewSurveyRouter(conf *config.Config, db db.DbService, server *echo.Echo, lo
 	return &SurveyRouter{conf: conf, db: db, server: server, handler: handler.NewHandler(conf, db, logger)}
 }
 
-func (r *SurveyRouter) RegisterRoutes() {
+func (r *SurveyRouter) RegisterRoutes(db db.DbService) {
 	r.server.POST("/surveys", r.handler.CreateSurvey)
 }
