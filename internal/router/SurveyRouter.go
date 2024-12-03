@@ -23,5 +23,5 @@ func NewSurveyRouter(conf *config.Config, db db.DbService, server *echo.Echo, lo
 func (r *SurveyRouter) RegisterRoutes() {
 	g := r.server.Group("/surveys")
 	g.POST("", r.handler.CreateSurvey)
-	g.GET("/:id/answer", r.handler.AnswerSurvey)
+	g.GET("/:survey_id/start", r.handler.StartSurvey)
 }
