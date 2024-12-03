@@ -2,7 +2,7 @@ package models
 
 import (
 	"time"
-
+	
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"gorm.io/gorm"
 )

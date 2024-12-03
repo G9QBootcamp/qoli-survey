@@ -7,38 +7,31 @@ import (
 	"github.com/go-playground/validator"
 )
 
-func IsValidNationalID(fl validator.FieldLevel) bool {
+// ValidateIranianNationalID validates the format and checksum of an Iranian national ID.
+func ValidateIranianNationalID(fl validator.FieldLevel) bool {
 	nationalID := fl.Field().String()
-	if len(nationalID) != 10 {
+
+	match, _ := regexp.MatchString(`^\d{10}$`, nationalID)
+	if !match {
 		return false
 	}
 
-	matched, _ := regexp.MatchString(`^\d{10}$`, nationalID)
-	if !matched {
-		return false
-	}
-
-	allSame := true
-	for i := 1; i < len(nationalID); i++ {
-		if nationalID[i] != nationalID[0] {
-			allSame = false
-			break
-		}
-	}
-	if allSame {
-		return false
-	}
-
-	sum := 0
+	// Checksum validation
+	var checksum int
 	for i := 0; i < 9; i++ {
-		digit, _ := strconv.Atoi(string(nationalID[i]))
-		sum += digit * (10 - i)
+		num, _ := strconv.Atoi(string(nationalID[i]))
+		checksum += num * (10 - i)
 	}
-	checksum := sum % 11
-	lastDigit, _ := strconv.Atoi(string(nationalID[9]))
-	return (checksum < 2 && checksum == lastDigit) || (checksum >= 2 && lastDigit == 11-checksum)
+	controlDigit, _ := strconv.Atoi(string(nationalID[9]))
+	calculatedDigit := checksum % 11
+
+	if (calculatedDigit < 2 && calculatedDigit != controlDigit) || (calculatedDigit >= 2 && 11-calculatedDigit != controlDigit) {
+		return false
+	}
+
+	return true
 }
 
 func RegisterCustomValidation(v *validator.Validate) {
-	v.RegisterValidation("national_id", IsValidNationalID)
+	v.RegisterValidation("national_id", ValidateIranianNationalID)
 }
