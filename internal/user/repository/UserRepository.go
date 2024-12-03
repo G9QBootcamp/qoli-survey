@@ -17,6 +17,7 @@ type IUserRepository interface {
 	CreateUser(ctx context.Context, user models.User) (models.User, error)
 	DeleteUser(ctx context.Context, id uint) error
 	IsEmailOrNationalIDTaken(ctx context.Context, email, nationalID string) bool
+	UpdateMaxSurveys(ctx context.Context, userID string, maxSurveys int) error
 }
 
 type UserRepository struct {
@@ -98,4 +99,14 @@ func (r *UserRepository) IsEmailOrNationalIDTaken(ctx context.Context, email, na
 	var user models.User
 	err := r.db.GetDb().WithContext(ctx).Where("email = ? OR national_id = ?", email, nationalID).First(&user).Error
 	return !errors.Is(err, gorm.ErrRecordNotFound)
+}
+
+func (r *UserRepository) UpdateMaxSurveys(ctx context.Context, userID string, maxSurveys int) error {
+	err := r.db.GetDb().WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("max_surveys", maxSurveys).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Update, "failed to update max surveys", map[logging.ExtraKey]interface{}{
+			logging.ErrorMessage: err.Error(),
+		})
+	}
+	return err
 }

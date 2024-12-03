@@ -16,6 +16,7 @@ import (
 type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
 	Signup(c context.Context, req dto.SignupRequest) (*dto.UserResponse, error)
+	SetMaxSurveys(ctx context.Context, userID string, maxSurveys int) error
 }
 type UserService struct {
 	conf   *config.Config
@@ -90,4 +91,15 @@ func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.Use
 		City:        user.City,
 		DateOfBirth: user.DateOfBirth,
 	}, nil
+}
+
+func (s *UserService) SetMaxSurveys(ctx context.Context, userID string, maxSurveys int) error {
+	if err := s.repo.UpdateMaxSurveys(ctx, userID, maxSurveys); err != nil {
+		s.logger.Error(logging.Internal, logging.Update, "failed to update max surveys", map[logging.ExtraKey]interface{}{
+			logging.Service:      "UserService",
+			logging.ErrorMessage: err.Error(),
+		})
+		return err
+	}
+	return nil
 }

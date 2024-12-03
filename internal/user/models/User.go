@@ -16,6 +16,7 @@ type User struct {
 	LastName      string
 	DateOfBirth   time.Time
 	City          string
+	MaxSurveys    int
 	WalletBalance float64 `gorm:"default:0"`
 	GlobalRole    Role    `gorm:"foreignKey:RoleID;references:ID;constraint:OnDelete:CASCADE;"`
 }

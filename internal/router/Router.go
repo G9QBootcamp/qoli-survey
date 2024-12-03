@@ -15,7 +15,7 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 	userRouter := NewUserRouter(conf, db, server.Echo, logger)
 	surveyRouter := NewSurveyRouter(conf, db, server.Echo, logger)
 
-	userRouter.RegisterRoutes()
+	userRouter.RegisterRoutes(db)
 	surveyRouter.RegisterRoutes(db)
 	// Additional routers...
 }
