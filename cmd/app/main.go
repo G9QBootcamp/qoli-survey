@@ -6,6 +6,7 @@ import (
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
+	"github.com/G9QBootcamp/qoli-survey/internal/db/seeds"
 	"github.com/G9QBootcamp/qoli-survey/internal/router"
 	"github.com/G9QBootcamp/qoli-survey/internal/server"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
@@ -34,6 +35,9 @@ func main() {
 	if err != nil {
 		logger.Fatal(logging.Database, logging.Startup, "error in initializing database", map[logging.ExtraKey]interface{}{logging.Service: "Database", logging.ErrorMessage: err.Error()})
 	}
+
+	seeder := seeds.NewSeeder(dbService, logger)
+	seeder.RunSeeders()
 
 	s := server.NewHttpServer()
 	router.RegisterRoutes(conf, dbService, s, logger)

@@ -32,18 +32,18 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
-func (h *UserHandler) CreateUser(c echo.Context) error {
-	var req dto.UserCreateRequest
+func (h *UserHandler) Signup(c echo.Context) error {
+	var req dto.SignupRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
 	if err := c.Validate(&req); err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
 	}
 
-	user, err := h.service.CreateUser(c.Request().Context(), req)
+	user, err := h.service.Signup(c.Request().Context(), req)
 	if err != nil {
 		// Handle other errors as internal server errors
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
