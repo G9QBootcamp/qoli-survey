@@ -17,6 +17,7 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 
 	userRouter := NewUserRouter(conf, db, apiGroup, logger)
 	surveyRouter := NewSurveyRouter(conf, db, apiGroup, logger)
+	accessRouter := NewAccessRouter(conf, db, sapiGroup, logger)
 
 	authGroup := server.Echo.Group("/auth")
 	authRouter := NewAuthRouter(conf, db, authGroup, logger)
@@ -24,5 +25,6 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 	authRouter.RegisterRoutes()
 	userRouter.RegisterRoutes()
 	surveyRouter.RegisterRoutes()
+	accessRouter.RegisterRoutes()
 	// Additional routers...
 }
