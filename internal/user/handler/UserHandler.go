@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
@@ -50,4 +51,30 @@ func (h *UserHandler) Signup(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, user)
+}
+
+func (h *UserHandler) UpdateProfile(c echo.Context) error {
+	userID := c.Get("userID").(uint)
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid input"})
+	}
+
+	if req.DateOfBirth != nil {
+		user, err := h.service.GetUserByID(userID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Unable to fetch user"})
+		}
+		if time.Since(user.CreatedAt) > 24*time.Hour {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "Date of birth cannot be updated after 24 hours of registration"})
+		}
+	}
+
+	updatedUser, err := h.service.UpdateUserProfile(userID, req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Unable to update profile"})
+
+	}
+
+	return c.JSON(http.StatusOK, updatedUser)
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 
@@ -16,6 +17,7 @@ import (
 type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
 	Signup(c context.Context, req dto.SignupRequest) (*dto.UserResponse, error)
+	UpdateUserProfile(c context.Context, userID uint, req *dto.UpdateUserRequest) (*models.User, error) 
 }
 type UserService struct {
 	conf   *config.Config
@@ -90,4 +92,36 @@ func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.Use
 		City:        user.City,
 		DateOfBirth: user.DateOfBirth,
 	}, nil
+}
+
+func (s *UserService) UpdateUserProfile(c context.Context, userID uint, req *dto.UpdateUserRequest) (*models.User, error) {
+	user, err := s.repo.GetUserByID(c, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.FirstName != nil {
+		user.FirstName = *req.FirstName
+	}
+	if req.LastName != nil {
+		user.LastName = *req.LastName
+	}
+	if req.DateOfBirth != nil {
+		dateOfBirth, err := time.Parse("2006-01-02", *req.DateOfBirth) //assuming the date format is "YYYY-MM-DD"
+		if err != nil {
+			return nil, errors.New("invalid date format")
+		}
+		user.DateOfBirth = dateOfBirth
+	}
+	if req.City != nil {
+		user.City = *req.City
+	}
+
+	if req.DateOfBirth != nil {
+		if time.Since(user.CreatedAt) > 24*time.Hour {
+			return nil, errors.New("date of birth cannot be updated after 24 hours of registration")
+		}
+	}
+
+	return s.repo.UpdateUser(c, user)
 }
