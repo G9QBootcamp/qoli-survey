@@ -9,17 +9,17 @@ import (
 )
 
 type SurveyRouter struct {
-	conf    *config.Config
-	db      db.DbService
-	server  *echo.Echo
-	handler *handler.SurveyHandler
-	logger  logging.Logger
+	conf        *config.Config
+	db          db.DbService
+	serverGroup *echo.Group
+	handler     *handler.SurveyHandler
+	logger      logging.Logger
 }
 
-func NewSurveyRouter(conf *config.Config, db db.DbService, server *echo.Echo, logger logging.Logger) *SurveyRouter {
-	return &SurveyRouter{conf: conf, db: db, server: server, handler: handler.NewHandler(conf, db, logger)}
+func NewSurveyRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *SurveyRouter {
+	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewHandler(conf, db, logger)}
 }
 
 func (r *SurveyRouter) RegisterRoutes(db db.DbService) {
-	r.server.POST("/surveys", r.handler.CreateSurvey)
+	r.serverGroup.POST("/surveys", r.handler.CreateSurvey)
 }

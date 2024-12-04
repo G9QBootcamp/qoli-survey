@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/util"
+	"github.com/G9QBootcamp/qoli-survey/pkg/jwtutils"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"golang.org/x/net/context"
 )
@@ -16,6 +18,7 @@ import (
 type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
 	Signup(c context.Context, req dto.SignupRequest) (*dto.UserResponse, error)
+	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
 }
 type UserService struct {
 	conf   *config.Config
@@ -74,7 +77,7 @@ func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.Use
 	}
 	user.PasswordHash = hashedPassword
 
-	user, err = s.repo.CreateUser(c, user)
+	err = s.repo.CreateUser(c, &user)
 	if err != nil {
 		s.logger.Error(logging.Internal, logging.FailedToCreateUser, "error in create user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
 
@@ -90,4 +93,26 @@ func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.Use
 		City:        user.City,
 		DateOfBirth: user.DateOfBirth,
 	}, nil
+}
+
+func (s *UserService) Login(c context.Context, req dto.LoginRequest) (string, time.Time, error) {
+	user, err := s.repo.GetUserByEmail(c, req.Email)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.UserNotAuthorized, "invalid email", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		return "", time.Time{}, errors.New("invalid email")
+	}
+
+	if err := util.CheckPassword(req.Password, user.PasswordHash); err != nil {
+		s.logger.Error(logging.Internal, logging.UserNotAuthorized, "invalid email", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		return "", time.Time{}, errors.New("invalid password")
+	}
+
+	expiresAt := time.Now().Add(time.Duration(s.conf.JWT.ExpireMinutes) * time.Minute)
+	token, err := jwtutils.GenerateToken(user.ID, user.GlobalRole.Name, s.conf.JWT.SecretKey, s.conf.JWT.ExpireMinutes)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToGenerateToken, "generate token error", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		return "", time.Time{}, errors.New("failed to generate token")
+	}
+
+	return token, expiresAt, nil
 }

@@ -36,3 +36,13 @@ type SignupRequest struct {
 	City        string    `json:"city"`
 	DateOfBirth time.Time `json:"date_of_birth"`
 }
+
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
+}
+
+type LoginResponse struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
