@@ -34,5 +34,12 @@ type SignupRequest struct {
 	FirstName   string    `json:"first_name"`
 	LastName    string    `json:"last_name"`
 	City        string    `json:"city"`
-	DateOfBirth time.Time `json:"date_of_birth"`
+	DateOfBirth time.Time `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
+}
+
+type UpdateUserRequest struct {
+	FirstName   string `json:"first_name,omitempty" validate:"omitempty,min=1,max=100"`
+	LastName    string `json:"last_name,omitempty" validate:"omitempty,min=1,max=100"`
+	DateOfBirth string `json:"date_of_birth,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	City        string `json:"city,omitempty" validate:"omitempty,min=1,max=100"`
 }

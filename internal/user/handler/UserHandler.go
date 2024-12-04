@@ -9,6 +9,7 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/service"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 )
 
@@ -50,4 +51,35 @@ func (h *UserHandler) Signup(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, user)
+}
+
+func (h *UserHandler) UpdateUserProfile(c echo.Context) error {
+	userID, ok := c.Get("userID").(uint)
+	userID = 1
+	if !ok {
+		//return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	var req dto.UpdateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid input"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		var validationErrors map[string]string
+		for _, err := range err.(validator.ValidationErrors) {
+			validationErrors[err.Field()] = err.Tag()
+		}
+		return c.JSON(http.StatusBadRequest, validationErrors)
+	}
+
+	updatedUser, err := h.service.UpdateUserProfile(c.Request().Context(), userID, req)
+	if err != nil {
+		if err.Error() == "date of birth cannot be updated after 24 hours of registration" {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Unable to update profile"})
+	}
+
+	return c.JSON(http.StatusOK, updatedUser)
 }

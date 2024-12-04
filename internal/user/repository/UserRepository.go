@@ -17,6 +17,7 @@ type IUserRepository interface {
 	CreateUser(ctx context.Context, user models.User) (models.User, error)
 	DeleteUser(ctx context.Context, id uint) error
 	IsEmailOrNationalIDTaken(ctx context.Context, email, nationalID string) bool
+	UpdateUser(ctx context.Context, user *models.User) (*models.User, error)
 }
 
 type UserRepository struct {
@@ -98,4 +99,11 @@ func (r *UserRepository) IsEmailOrNationalIDTaken(ctx context.Context, email, na
 	var user models.User
 	err := r.db.GetDb().WithContext(ctx).Where("email = ? OR national_id = ?", email, nationalID).First(&user).Error
 	return !errors.Is(err, gorm.ErrRecordNotFound)
+}
+
+func (r *UserRepository) Update(ctx context.Context, user *models.User) (*models.User, error) {
+	if err := r.db.GetDb().WithContext(ctx).Save(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
 }
