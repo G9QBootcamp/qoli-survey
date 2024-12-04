@@ -17,6 +17,7 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	HTTP     HTTPConfig     `yaml:"http"`
 	Logging  LoggerConfig   `yaml:"logging"`
+	JWT      JWTConfig      `yaml:"jwt"`
 }
 
 type DatabaseConfig struct {
@@ -41,6 +42,11 @@ type LoggerConfig struct {
 type HTTPConfig struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
+}
+
+type JWTConfig struct {
+	SecretKey     string `yml:"secret_key"`
+	ExpireMinutes int    `yml:"expire_minutes"`
 }
 
 var (

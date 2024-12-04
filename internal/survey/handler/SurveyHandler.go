@@ -27,7 +27,7 @@ func NewHandler(conf *config.Config, db db.DbService, logger logging.Logger) *Su
 func (h *SurveyHandler) CreateSurvey(c echo.Context) error {
 	var req dto.SurveyCreateRequest
 
-	userID, ok := c.Request().Context().Value("userID").(uint)
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}

@@ -14,7 +14,7 @@ func CheckPermission(requiredPermission string, db db.DbService) echo.Middleware
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 
-			userID, ok := c.Request().Context().Value("userID").(uint)
+			userID, ok := c.Get("userID").(uint)
 			if !ok || userID == 0 {
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
 			}
