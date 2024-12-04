@@ -51,3 +51,24 @@ func (h *UserHandler) Signup(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, user)
 }
+
+func (h *UserHandler) RestrictUserSurveys(c echo.Context) error {
+	id := c.Param("user_id")
+	var req struct {
+		MaxSurveys int `json:"max_surveys" validate:"required,min=0"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	if err := h.service.SetMaxSurveys(c.Request().Context(), id, req.MaxSurveys); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "Max surveys updated successfully"})
+}
