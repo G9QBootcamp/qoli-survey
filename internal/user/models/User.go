@@ -16,6 +16,13 @@ type User struct {
 	LastName      string
 	DateOfBirth   time.Time
 	City          string
-	WalletBalance float64 `gorm:"default:0"`
-	GlobalRole    Role    `gorm:"foreignKey:RoleID;references:ID;constraint:OnDelete:CASCADE;"`
+	WalletBalance float64               `gorm:"default:0"`
+	GlobalRole    Role                  `gorm:"foreignKey:RoleID;references:ID;constraint:OnDelete:CASCADE;"`
+	Notifications NotificationsSettings `json:"notifications"`
+}
+
+type NotificationsSettings struct {
+	SurveyCanceled bool `json:"survey_canceled"`
+	VoteCanceled   bool `json:"vote_canceled"`
+	RoleAssigned   bool `json:"role_assigned"`
 }

@@ -77,3 +77,21 @@ func (h *UserHandler) UpdateUserProfile(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, updatedUser)
 }
+
+func (h *UserHandler) UpdateNotifications(c echo.Context) error {
+	userID := c.Get("userID").(uint)
+
+	// Bind the request body to UpdateNotificationsRequest DTO
+	var req dto.UpdateNotificationsRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	// Update the user notifications using the service layer
+	updatedUser, err := h.service.UpdateUserNotifications(userID, &req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, updatedUser)
+}

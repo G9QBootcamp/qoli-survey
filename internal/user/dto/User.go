@@ -41,3 +41,9 @@ type UpdateUserRequest struct {
 	DateOfBirth string `json:"date_of_birth,omitempty" validate:"omitempty,date"`
 	City        string `json:"city,omitempty" validate:"omitempty,min=1,max=100"`
 }
+
+type UpdateNotificationsRequest struct {
+	SurveyCanceled *bool `json:"survey_canceled"`
+	VoteCanceled   *bool `json:"vote_canceled"`
+	RoleAssigned   *bool `json:"role_assigned"`
+}
