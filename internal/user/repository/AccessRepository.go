@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
@@ -11,8 +12,8 @@ type IAccessRepository interface {
 	CreateRole(ctx context.Context, role models.Role) (*models.Role, error)
 	CreateUserSurveyRole(ctx context.Context, usr models.UserSurveyRole) (*models.UserSurveyRole, error)
 	GetAllPermissions(ctx context.Context) ([]models.Permission, error)
-	DeleteUserSurveyRole(ctx context.Context, userSurveyRoleId uint) error
-	GetUserRolesForSurvey(ctx context.Context, userId, surveyId uint) ([]models.UserSurveyRole, error)
+	DeleteUserSurveyRole(ctx context.Context, surveyID uint, userID uint, roleID uint) error
+	GetUserRolesForSurvey(ctx context.Context, userID, surveyID uint) ([]models.UserSurveyRole, error)
 }
 
 type AccessRepository struct {
@@ -49,13 +50,28 @@ func (r *AccessRepository) GetAllPermissions(ctx context.Context) ([]models.Perm
 	return permissions, err
 }
 
-func (r *AccessRepository) DeleteUserSurveyRole(ctx context.Context, userSurveyRoleId uint) error {
-	return r.db.GetDb().WithContext(ctx).Where("ID = ?", userSurveyRoleId).Delete(&models.UserSurveyRole{}).Error
+func (r *AccessRepository) DeleteUserSurveyRole(ctx context.Context, surveyID uint, userID uint, roleID uint) error {
+	err := r.db.GetDb().WithContext(ctx).
+		Where("survey_id = ? AND user_id = ? AND role_id = ?", surveyID, userID, roleID).
+		Delete(&models.UserSurveyRole{}).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Delete, "delete role from user survey role error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return err
+	}
+
+	err = r.db.GetDb().WithContext(ctx).Where("id = ?", roleID).Delete(&models.Role{}).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Delete, "delete role error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return err
+	}
+
+	return nil
 }
 
-func (r *AccessRepository) GetUserRolesForSurvey(ctx context.Context, userId, surveyId uint) ([]models.UserSurveyRole, error) {
+func (r *AccessRepository) GetUserRolesForSurvey(ctx context.Context, userID, surveyID uint) ([]models.UserSurveyRole, error) {
 	var roles []models.UserSurveyRole
-	err := r.db.GetDb().WithContext(ctx).Where("user_id = ? AND survey_id = ?", userId, surveyId).Find(&roles).Error
+	err := r.db.GetDb().WithContext(ctx).Preload("Role.Permissions").
+		Where("user_id = ? AND survey_id = ?", userID, surveyID).Find(&roles).Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "get user roles for survey error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}

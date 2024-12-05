@@ -3,10 +3,10 @@ package dto
 import "github.com/G9QBootcamp/qoli-survey/internal/user/models"
 
 type SurveyRoleAssignRequest struct {
-	SurveyId      uint   `json:"surveyId" validate:"required"`
-	UserId        uint   `json:"userId" validate:"required"`
-	PermissionIds []uint `json:"permissionIds" validate:"required"`
-	TimeLimit     *int   `json:"timeLimit" validate:"required"`
+	SurveyID      uint   `json:"survey_id"`
+	UserID        uint   `json:"user_id"`
+	PermissionIds []uint `json:"permission_ids" validate:"required"`
+	TimeLimit     *int   `json:"time_limit,omitempty" validate:"omitempty,min=0"`
 }
 
 type SurveyRoleAssignResponse struct {
@@ -22,14 +22,13 @@ type GetUserRolesForSomeSurveyResponse struct {
 	SurveyID uint   `json:"survey_id"`
 	Roles    []Role `json:"roles"`
 }
-type GetUserRolesForSomeSurveyRequest struct {
-	UserID   uint `json:"user_id" validate:"required"`
-	SurveyID uint `json:"survey_id" validate:"required"`
-}
+
 type Role struct {
-	Permissions []models.Permission `json:"permissions" validate:"required"`
-	TimeLimit   int                 `json:"time_limit" validate:"required"`
+	ID          uint         `json:"id"`
+	Permissions []Permission `json:"permissions"`
+	TimeLimit   int          `json:"time_limit"`
 }
-type DeleteUserSurveyRoleRequest struct {
-	ID uint `json:"id" validate:"required"`
+
+type Permission struct {
+	Action string `json:"action"`
 }

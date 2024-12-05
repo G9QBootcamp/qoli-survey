@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
@@ -12,9 +13,9 @@ import (
 
 type IAccessService interface {
 	SetRole(c context.Context, req dto.SurveyRoleAssignRequest) (*dto.SurveyRoleAssignResponse, error)
-	GetUserRolesForSomeSurvey(c context.Context, userId, surveyId uint) (*dto.GetUserRolesForSomeSurveyResponse, error)
+	GetUserRolesForSomeSurvey(c context.Context, userID uint, surveyID uint) (*dto.GetUserRolesForSomeSurveyResponse, error)
 	GetAllPermissions(c context.Context) ([]models.Permission, error)
-	DeleteUserSurveyRole(c context.Context, userId uint) error
+	DeleteUserSurveyRole(c context.Context, surveyID uint, userID uint, roleID uint) error
 }
 type AccessService struct {
 	conf   *config.Config
@@ -55,8 +56,8 @@ func (s *AccessService) SetRole(c context.Context, req dto.SurveyRoleAssignReque
 	}
 	// usr is the abbreviation for UserSurveyRole
 	usr := models.UserSurveyRole{
-		UserID:   req.UserId,
-		SurveyID: req.SurveyId,
+		UserID:   req.UserID,
+		SurveyID: req.SurveyID,
 		RoleID:   createdRole.ID,
 	}
 	if req.TimeLimit != nil {
@@ -76,18 +77,27 @@ func (s *AccessService) SetRole(c context.Context, req dto.SurveyRoleAssignReque
 	}, nil
 }
 
-func (s *AccessService) GetUserRolesForSomeSurvey(c context.Context, userId, surveyId uint) (*dto.GetUserRolesForSomeSurveyResponse, error) {
-	res, err := s.repo.GetUserRolesForSurvey(c, userId, surveyId)
+func (s *AccessService) GetUserRolesForSomeSurvey(c context.Context, userID uint, surveyID uint) (*dto.GetUserRolesForSomeSurveyResponse, error) {
+	res, err := s.repo.GetUserRolesForSurvey(c, userID, surveyID)
 	if err != nil {
 		return nil, err
 	}
 	response := dto.GetUserRolesForSomeSurveyResponse{
-		UserID:   userId,
-		SurveyID: surveyId,
+		UserID:   userID,
+		SurveyID: surveyID,
 	}
+
 	for _, role := range res {
+		var permissionsDTO []dto.Permission
+		for _, permission := range role.Role.Permissions {
+			permissionsDTO = append(permissionsDTO, dto.Permission{
+				Action: permission.Action,
+			})
+		}
+
 		response.Roles = append(response.Roles, dto.Role{
-			Permissions: role.Role.Permissions,
+			ID:          role.RoleID,
+			Permissions: permissionsDTO,
 			TimeLimit:   role.TimeLimit,
 		})
 	}
@@ -96,6 +106,6 @@ func (s *AccessService) GetUserRolesForSomeSurvey(c context.Context, userId, sur
 func (s *AccessService) GetAllPermissions(c context.Context) ([]models.Permission, error) {
 	return s.repo.GetAllPermissions(c)
 }
-func (s *AccessService) DeleteUserSurveyRole(c context.Context, userId uint) error {
-	return s.repo.DeleteUserSurveyRole(c, userId)
+func (s *AccessService) DeleteUserSurveyRole(c context.Context, surveyID uint, userID uint, roleID uint) error {
+	return s.repo.DeleteUserSurveyRole(c, surveyID, userID, roleID)
 }

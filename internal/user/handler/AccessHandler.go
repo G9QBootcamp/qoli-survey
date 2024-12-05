@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
@@ -31,6 +32,17 @@ func (h *AccessHandler) SetRole(c echo.Context) error {
 	if err := c.Validate(&req); err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
 	}
+
+	surveyID, err1 := strconv.ParseUint(c.Param("survey_id"), 10, 0)
+	userID, err2 := strconv.ParseUint(c.Param("user_id"), 10, 0)
+
+	if err1 != nil || err2 != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request parameters"})
+	}
+
+	req.SurveyID = uint(surveyID)
+	req.UserID = uint(userID)
+
 	res, err := h.service.SetRole(c.Request().Context(), req)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -40,14 +52,14 @@ func (h *AccessHandler) SetRole(c echo.Context) error {
 }
 
 func (h *AccessHandler) GetUserRolesForSomeSurvey(c echo.Context) error {
-	var req dto.GetUserRolesForSomeSurveyRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	surveyID, err1 := strconv.ParseUint(c.Param("survey_id"), 10, 0)
+	userID, err2 := strconv.ParseUint(c.Param("user_id"), 10, 0)
+
+	if err1 != nil || err2 != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request parameters"})
 	}
-	if err := c.Validate(&req); err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
-	}
-	res, err := h.service.GetUserRolesForSomeSurvey(c.Request().Context(), req.UserID, req.SurveyID)
+
+	res, err := h.service.GetUserRolesForSomeSurvey(c.Request().Context(), uint(userID), uint(surveyID))
 	if err != nil {
 		// Handle other errors as internal server errors
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -65,14 +77,15 @@ func (h *AccessHandler) GetAllPermissions(c echo.Context) error {
 }
 
 func (h *AccessHandler) DeleteUserSurveyRole(c echo.Context) error {
-	var req dto.DeleteUserSurveyRoleRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	surveyID, err1 := strconv.ParseUint(c.Param("survey_id"), 10, 0)
+	userID, err2 := strconv.ParseUint(c.Param("user_id"), 10, 0)
+	roleID, err3 := strconv.ParseUint(c.Param("role_id"), 10, 0)
+
+	if err1 != nil || err2 != nil || err3 != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request parameters"})
 	}
-	if err := c.Validate(&req); err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
-	}
-	err := h.service.DeleteUserSurveyRole(c.Request().Context(), req.ID)
+
+	err := h.service.DeleteUserSurveyRole(c.Request().Context(), uint(surveyID), uint(userID), uint(roleID))
 	if err != nil {
 		// Handle other errors as internal server errors
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})

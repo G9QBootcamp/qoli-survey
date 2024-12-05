@@ -3,26 +3,36 @@ package router
 import (
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
+	middlewares "github.com/G9QBootcamp/qoli-survey/internal/middleware"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/handler"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"github.com/labstack/echo/v4"
 )
 
 type AccessRouter struct {
-	conf    *config.Config
-	db      db.DbService
-	server  *echo.Echo
-	handler *handler.AccessHandler
-	logger  logging.Logger
+	conf        *config.Config
+	db          db.DbService
+	serverGroup *echo.Group
+	handler     *handler.AccessHandler
+	logger      logging.Logger
 }
 
-func NewAccessRouter(conf *config.Config, db db.DbService, server *echo.Echo, logger logging.Logger) *AccessRouter {
-	return &AccessRouter{conf: conf, db: db, server: server, handler: handler.NewAccessHandler(conf, db, logger), logger: logger}
+func NewAccessRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *AccessRouter {
+	return &AccessRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewAccessHandler(conf, db, logger), logger: logger}
 }
 
-func (r *AccessRouter) RegisterRoutes() {
-	r.server.GET("/access/permissions", r.handler.GetAllPermissions)
-	r.server.GET("/access/assign_role", r.handler.SetRole)
-	r.server.GET("/access/get_user_survey_roles", r.handler.GetUserRolesForSomeSurvey)
-	r.server.GET("/access/delete_role", r.handler.DeleteUserSurveyRole)
+func (r *AccessRouter) RegisterRoutes(db db.DbService) {
+	r.serverGroup.GET("/access/permissions", r.handler.GetAllPermissions)
+	r.serverGroup.POST("/access/survey/:survey_id/user/:user_id/assign-role",
+		r.handler.SetRole,
+		middlewares.CheckPermission("assign_and_remove_survey_roles", db),
+	)
+	r.serverGroup.GET("/access/survey/:survey_id/user/:user_id/roles",
+		r.handler.GetUserRolesForSomeSurvey,
+		middlewares.CheckPermission("assign_and_remove_survey_roles", db),
+	)
+	r.serverGroup.DELETE("/access/survey/:survey_id/user/:user_id/role/:role_id",
+		r.handler.DeleteUserSurveyRole,
+		middlewares.CheckPermission("assign_and_remove_survey_roles", db),
+	)
 }
