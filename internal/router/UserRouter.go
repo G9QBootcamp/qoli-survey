@@ -24,6 +24,6 @@ func (r *UserRouter) RegisterRoutes() {
 	r.server.GET("/users", r.handler.GetUsers)
 	r.server.POST("/signup", r.handler.Signup)
 
-	r.server.PATCH("/profile", r.handler.UpdateProfile)
+	r.server.PATCH("/profile", r.handler.UpdateUserProfile)
 
 }

@@ -77,6 +77,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, userID uint) (*models.
 	var user models.User
 
 	err := r.db.GetDb().WithContext(ctx).First(&user, userID).Error
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -101,7 +102,7 @@ func (r *UserRepository) IsEmailOrNationalIDTaken(ctx context.Context, email, na
 	return !errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (r *UserRepository) Update(ctx context.Context, user *models.User) (*models.User, error) {
+func (r *UserRepository) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	if err := r.db.GetDb().WithContext(ctx).Save(user).Error; err != nil {
 		return nil, err
 	}
