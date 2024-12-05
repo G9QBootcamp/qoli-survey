@@ -9,6 +9,7 @@ import (
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 )
 
@@ -38,6 +39,9 @@ func DefaultStructuredLogger(cfg *config.Config, logger logging.Logger) echo.Mid
 func structuredLogger(l logging.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			if websocket.IsWebSocketUpgrade(c.Request()) {
+				return next(c)
+			}
 			start := time.Now()
 			req := c.Request()
 			res := c.Response()
