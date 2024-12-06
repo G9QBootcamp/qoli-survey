@@ -31,16 +31,10 @@ const (
 	QuestionnaireValidationFailed SubCategory = "QuestionnaireValidationFailed"
 
 	// Internal
-	Api                   SubCategory = "Api"
-	HashPassword          SubCategory = "HashPassword"
-	UserNotAuthorized     SubCategory = "UserNotAuthorized"
+
 	UserNotFound          SubCategory = "UserNotFound"
-	DefaultRoleNotFound   SubCategory = "DefaultRoleNotFound"
-	FailedToCreateUser    SubCategory = "FailedToCreateUser"
-	FailedToGetUsers      SubCategory = "FailedToGetUsers"
 	FailedToGenerateToken SubCategory = "FailedToGenerateToken"
 
-	RecoverError                SubCategory = "Recover Error"
 	Api                         SubCategory = "Api"
 	HashPassword                SubCategory = "HashPassword"
 	UserNotAuthorized           SubCategory = "UserNotAuthorized"

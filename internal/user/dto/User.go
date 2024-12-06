@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 type UserResponse struct {
 	ID          uint   `json:"id"`
 	NationalID  string `json:"national_id"`
