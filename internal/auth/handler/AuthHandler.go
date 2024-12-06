@@ -29,37 +29,42 @@ func NewHandler(conf *config.Config, db db.DbService, logger logging.Logger) *Au
 		logger: logger}
 }
 
-func (h *AuthHandler) GenerateOTP(c echo.Context) error {
-	userID, ok := c.Get("userID").(uint)
-	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+func (h *AuthHandler) Signup(c echo.Context) error {
+	var req dto.SignupRequest
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
-	otp, err := h.service.SaveOTP(c.Request().Context(), userID)
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	user, err := h.service.Signup(c.Request().Context(), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	otp, err := h.service.SaveOTP(c.Request().Context(), user.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save OTP"})
 	}
 
-	err = h.service.SendOTPEmail(c.Request().Context(), userID, otp)
+	err = h.service.SendOTPEmail(c.Request().Context(), user.ID, otp)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to send OTP email"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "OTP sent successfully"})
+	return c.JSON(http.StatusOK, map[string]string{"message": "User created and OTP sent successfully"})
 }
 
 func (h *AuthHandler) VerifyOTP(c echo.Context) error {
-	userID, ok := c.Get("userID").(uint)
-	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
-	}
-
 	var req dto.VerifyOTPRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid input"})
 	}
 
-	valid, err := h.service.VerifyOTP(c.Request().Context(), userID, req.OTP)
+	valid, err := h.service.VerifyOTP(c.Request().Context(), req)
 	if err != nil || !valid {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired OTP"})
 	}

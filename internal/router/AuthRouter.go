@@ -27,9 +27,8 @@ func NewAuthRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group
 }
 
 func (r *AuthRouter) RegisterRoutes() {
-	r.serverGroup.POST("/signup", r.userHandler.Signup)
+	r.serverGroup.POST("/signup", r.handler.Signup)
 	r.serverGroup.POST("/login", r.userHandler.Login)
 
-	r.serverGroup.POST("/auth/generate-otp", r.handler.GenerateOTP)
-	r.serverGroup.POST("/auth/verify-otp", r.handler.VerifyOTP)
+	r.serverGroup.POST("/verify-otp", r.handler.VerifyOTP)
 }

@@ -9,9 +9,12 @@ import (
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
+	"github.com/G9QBootcamp/qoli-survey/internal/util"
 
+	"github.com/G9QBootcamp/qoli-survey/internal/auth/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/auth/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/auth/repository"
+	userModels "github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	userRepository "github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"golang.org/x/net/context"
@@ -20,7 +23,8 @@ import (
 type IAuthService interface {
 	SaveOTP(context.Context, uint) (string, error)
 	SendOTPEmail(context.Context, uint, string) error
-	VerifyOTP(context.Context, uint, string) (bool, error)
+	VerifyOTP(context.Context, dto.VerifyOTPRequest) (bool, error)
+	Signup(c context.Context, req dto.SignupRequest) (*userModels.User, error)
 }
 
 type AuthService struct {
@@ -32,6 +36,70 @@ type AuthService struct {
 
 func New(conf *config.Config, repo repository.IAuthRepository, userRepo userRepository.IUserRepository, logger logging.Logger) *AuthService {
 	return &AuthService{conf: conf, repo: repo, userRepo: userRepo, logger: logger}
+}
+
+func (s *AuthService) Signup(c context.Context, req dto.SignupRequest) (*userModels.User, error) {
+	user := userModels.User{
+		NationalID:   req.NationalID,
+		Email:        req.Email,
+		PasswordHash: req.Password,
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
+		City:         req.City,
+	}
+
+	if req.DateOfBirth != "" {
+		dateOfBirth, err := time.Parse("2006-01-02", req.DateOfBirth)
+		if err != nil {
+			s.logger.Error(logging.Internal, logging.FailedToParseDate, "failed to parse date", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+
+			return nil, errors.New("invalid date format")
+		}
+		user.DateOfBirth = dateOfBirth
+	}
+
+	if s.userRepo.IsEmailOrNationalIDTaken(c, user.Email, user.NationalID) {
+		return nil, errors.New("email or national ID already in use")
+	}
+
+	hashedPassword, err := util.HashPassword(req.Password)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.HashPassword, "failed to hash password", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+
+		return nil, err
+	}
+	user.PasswordHash = hashedPassword
+
+	userCount, err := s.userRepo.GetUserCount(c)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToGetUserCount, "error in get user count", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+
+		return nil, err
+	}
+
+	if userCount == 0 {
+		superAdminRole, err := s.userRepo.GetRoleByName(c, "Super Admin")
+		if err != nil {
+			s.logger.Error(logging.Database, logging.FailedToGetRole, "failed to fetch super admin role", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		}
+		user.GlobalRole = *superAdminRole
+	} else {
+		userRole, err := s.userRepo.GetRoleByName(c, "User")
+		if err != nil {
+			s.logger.Error(logging.Database, logging.FailedToGetRole, "failed to fetch user role", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+			return nil, err
+		}
+		user.GlobalRole = *userRole
+	}
+
+	_, err = s.userRepo.CreateUser(c, &user)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToCreateUser, "error in create user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (s *AuthService) SaveOTP(c context.Context, userID uint) (string, error) {
@@ -55,16 +123,16 @@ func (s *AuthService) SaveOTP(c context.Context, userID uint) (string, error) {
 	return otp, nil
 }
 
-func (s *AuthService) VerifyOTP(c context.Context, userID uint, otp string) (bool, error) {
-	otpRecord, err := s.repo.GetOTPByUserID(c, userID)
-	fmt.Println(err != nil, otpRecord == nil, !otpRecord.IsValid, otpRecord.Code != otp, otpRecord.ExpiresAt.Before(time.Now()))
-	if err != nil || otpRecord == nil || !otpRecord.IsValid || otpRecord.Code != otp || otpRecord.ExpiresAt.Before(time.Now()) {
-		return false, errors.New("invalid or expired OTP")
-	}
-
-	user, err := s.userRepo.GetUserByID(c, userID)
+func (s *AuthService) VerifyOTP(c context.Context, req dto.VerifyOTPRequest) (bool, error) {
+	user, err := s.userRepo.GetUserByEmail(c, req.Email)
 	if err != nil || user == nil {
 		return false, errors.New("user not found")
+	}
+
+	otpRecord, err := s.repo.GetOTPByUserID(c, user.ID)
+	fmt.Println(err != nil, otpRecord == nil, !otpRecord.IsValid, otpRecord.Code != req.OTP, otpRecord.ExpiresAt.Before(time.Now()))
+	if err != nil || otpRecord == nil || !otpRecord.IsValid || otpRecord.Code != req.OTP || otpRecord.ExpiresAt.Before(time.Now()) {
+		return false, errors.New("invalid or expired OTP")
 	}
 
 	user.EmailVerified = true
