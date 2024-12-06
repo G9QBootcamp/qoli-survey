@@ -49,6 +49,7 @@ const (
 	FailedToCreateParticipation SubCategory = "FailedToCreateParticipation"
 	FailedToUpdateUser          SubCategory = "FailedToUpdateUser"
 	FailedToParseDate           SubCategory = "FailedToParseDate"
+	FailedToGetPermissions SubCategory = "FailedToGetPermissions"
 )
 
 const (
