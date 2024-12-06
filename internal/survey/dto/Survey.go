@@ -16,6 +16,12 @@ type SurveyCreateRequest struct {
 	OwnerID            uint
 }
 
+type SurveysGetRequest struct {
+	Page   int    `query:"page" validate:"numeric"`
+	UserId int    `query:"page" validate:"numeric"`
+	Title  string `query:"title"`
+}
+
 type QuestionCreateRequest struct {
 	Text              string                `json:"text" validate:"required"`
 	HasMultipleChoice bool                  `json:"has_multiple_choice"`
@@ -35,29 +41,21 @@ type Condition struct {
 }
 
 type SurveyResponse struct {
-	SurveyID           uint       `json:"survey_id"`
-	Title              string     `json:"title"`
-	StartTime          string     `json:"start_time"`
-	EndTime            string     `json:"end_time"`
-	IsSequential       bool       `json:"is_sequential"`
-	AllowReturn        bool       `json:"allow_return"`
-	ParticipationLimit int        `json:"participation_limit"`
-	AnswerTimeLimit    int        `json:"answer_time_limit"`
-	Questions          []Question `json:"questions"`
-}
-
-type Question struct {
-	ID                uint     `json:"question_id"`
-	Text              string   `json:"text"`
-	HasMultipleChoice bool     `json:"has_multiple_choice"`
-	MediaUrl          string   `json:"media_url"`
-	Choices           []Choice `json:"choices"`
+	SurveyID           uint   `json:"survey_id"`
+	Title              string `json:"title"`
+	StartTime          string `json:"start_time"`
+	EndTime            string `json:"end_time"`
+	IsSequential       bool   `json:"is_sequential"`
+	AllowReturn        bool   `json:"allow_return"`
+	ParticipationLimit int    `json:"participation_limit"`
+	AnswerTimeLimit    int    `json:"answer_time_limit"`
 }
 
 type Choice struct {
-	ID        uint   `json:"choice_id"`
-	Text      string `json:"text"`
-	IsCorrect bool   `json:"is_correct"`
+	ID               uint   `json:"choice_id"`
+	Text             string `json:"text"`
+	IsCorrect        bool   `json:"is_correct"`
+	LinkedQuestionID uint   `json:"linked_question_id"`
 }
 
 type UserSurveyParticipationResponse struct {
@@ -67,4 +65,19 @@ type UserSurveyParticipationResponse struct {
 	StartAt     time.Time `json:"start_at"`
 	EndAt       time.Time `json:"end_at"`
 	CommittedAt time.Time `json:"committed_at"`
+}
+
+type OperationType string
+
+const CommitOperation OperationType = "commit"
+const BackOperation OperationType = "back"
+
+type VoteRequest struct {
+	Operation  OperationType `json:"operation"`
+	QuestionId uint          `json:"question_id" validate:"numeric"`
+	Answer     string        `json:"answer"`
+}
+type VoteResponse struct {
+	Question *Question `json:"question"`
+	Message  string    `json:"message"`
 }
