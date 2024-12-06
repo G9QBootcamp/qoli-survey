@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type UserRouter struct {
+type AuthRouter struct {
 	conf        *config.Config
 	db          db.DbService
 	serverGroup *echo.Group
@@ -16,14 +16,11 @@ type UserRouter struct {
 	logger      logging.Logger
 }
 
-func NewUserRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *UserRouter {
-	return &UserRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewHandler(conf, db, logger), logger: logger}
+func NewAuthRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *AuthRouter {
+	return &AuthRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewHandler(conf, db, logger), logger: logger}
 }
 
-func (r *UserRouter) RegisterRoutes() {
-	r.serverGroup.GET("/users", r.handler.GetUsers)
+func (r *AuthRouter) RegisterRoutes() {
 	r.serverGroup.POST("/signup", r.handler.Signup)
-
-	r.serverGroup.PATCH("/profile", r.handler.UpdateUserProfile)
-
+	r.serverGroup.POST("/login", r.handler.Login)
 }
