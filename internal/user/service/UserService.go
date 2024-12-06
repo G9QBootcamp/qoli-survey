@@ -75,7 +75,7 @@ func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.Use
 	}
 	user.PasswordHash = hashedPassword
 
-	err = s.repo.CreateUser(c, &user)
+	_, err = s.repo.CreateUser(c, &user)
 	if err != nil {
 		s.logger.Error(logging.Internal, logging.FailedToCreateUser, "error in create user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
 
