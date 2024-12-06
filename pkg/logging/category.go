@@ -41,6 +41,8 @@ const (
 	RecoverError                SubCategory = "Recover Error"
 	FailedToGetParticipation    SubCategory = "FailedToGetParticipation"
 	FailedToCreateParticipation SubCategory = "FailedToCreateParticipation"
+	FailedToUpdateUser          SubCategory = "FailedToUpdateUser"
+	FailedToParseDate           SubCategory = "FailedToParseDate"
 )
 
 const (

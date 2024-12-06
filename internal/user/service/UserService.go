@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 
@@ -16,6 +17,7 @@ import (
 type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
 	Signup(c context.Context, req dto.SignupRequest) (*dto.UserResponse, error)
+	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 }
 type UserService struct {
 	conf   *config.Config
@@ -37,21 +39,18 @@ func (s *UserService) GetUsers(c context.Context, r dto.UserGetRequest) ([]*dto.
 	usersResponse := []*dto.UserResponse{}
 
 	for _, user := range users {
-		usersResponse = append(usersResponse, &dto.UserResponse{
-			ID:          user.ID,
-			NationalID:  user.NationalID,
-			Email:       user.Email,
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			City:        user.City,
-			DateOfBirth: user.DateOfBirth,
-		})
+		usersResponse = append(usersResponse, ToUserResponse(&user))
 	}
 	return usersResponse, nil
 }
 
 func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.UserResponse, error) {
+	dateOfBirth, err := time.Parse("2006-01-02", req.DateOfBirth)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToParseDate, "failed to parse date", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
 
+		return nil, errors.New("invalid date format")
+	}
 	user := models.User{
 		NationalID:   req.NationalID,
 		Email:        req.Email,
@@ -59,7 +58,7 @@ func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.Use
 		FirstName:    req.FirstName,
 		LastName:     req.LastName,
 		City:         req.City,
-		DateOfBirth:  req.DateOfBirth,
+		DateOfBirth:  dateOfBirth,
 	}
 
 	if s.repo.IsEmailOrNationalIDTaken(c, user.Email, user.NationalID) {
@@ -81,13 +80,58 @@ func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.Use
 		return nil, err
 	}
 
+	return ToUserResponse(&user), nil
+}
+
+func (s *UserService) UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error) {
+	user, err := s.repo.GetUserByID(c, userID)
+	if err != nil || user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	if req.FirstName != "" {
+		user.FirstName = req.FirstName
+	}
+	if req.LastName != "" {
+		user.LastName = req.LastName
+	}
+	if req.DateOfBirth != "" {
+		dateOfBirth, err := time.Parse("2006-01-02", req.DateOfBirth) // Assuming format "YYYY-MM-DD"
+		if err != nil {
+			return nil, errors.New("invalid date format")
+		}
+		if time.Since(user.CreatedAt) > 24*time.Hour {
+			return nil, errors.New("date of birth cannot be updated after 24 hours of registration")
+		}
+		user.DateOfBirth = dateOfBirth
+	}
+	if req.City != "" {
+		user.City = req.City
+	}
+
+	updatedUser, err := s.repo.UpdateUser(c, user)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToUpdateUser, "error in updating user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+
+		return nil, err
+	}
+
+	return ToUserResponse(updatedUser), nil
+}
+
+func ToUserResponse(user *models.User) *dto.UserResponse {
+	var dateOfBirth string
+
+	if !user.DateOfBirth.IsZero() {
+		formattedDate := user.DateOfBirth.Format("2006-01-02")
+		dateOfBirth = formattedDate
+	}
+
 	return &dto.UserResponse{
 		ID:          user.ID,
-		NationalID:  user.NationalID,
-		Email:       user.Email,
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
+		DateOfBirth: dateOfBirth,
 		City:        user.City,
-		DateOfBirth: user.DateOfBirth,
-	}, nil
+	}
 }
