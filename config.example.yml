@@ -22,3 +22,11 @@ logging:
 jwt:
   secret_key: "supersecretkey1234567890abcdefghijklmnopqrstuvwxyz!"
   expire_minutes: 60
+
+email:
+  smtp_server: "smtp.gmail.com"
+  smtp_port: "587"
+  smtp_user: "fkz761997@gmail.com"
+  smtp_pass: "teyh uhya ilwx ljou"
+  from_email: "fkz761997@gmail.com"
+    

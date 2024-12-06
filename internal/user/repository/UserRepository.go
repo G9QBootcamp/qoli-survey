@@ -19,6 +19,8 @@ type IUserRepository interface {
 	DeleteUser(ctx context.Context, id uint) error
 	IsEmailOrNationalIDTaken(ctx context.Context, email, nationalID string) bool
 	UpdateUser(ctx context.Context, user *models.User) (*models.User, error)
+	GetUserCount(ctx context.Context) (int64, error)
+	GetRoleByName(ctx context.Context, roleName string) (*models.Role, error)
 }
 
 type UserRepository struct {
@@ -118,4 +120,25 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user *models.User) (*mo
 		return nil, err
 	}
 	return user, nil
+}
+
+func (r *UserRepository) GetUserCount(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.GetDb().WithContext(ctx).Model(&models.User{}).Count(&count).Error
+	if err != nil {
+		if err != nil {
+			r.logger.Error(logging.Database, logging.Select, "get user count error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		}
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *UserRepository) GetRoleByName(ctx context.Context, roleName string) (*models.Role, error) {
+	var role models.Role
+	err := r.db.GetDb().WithContext(ctx).Where("name = ?", roleName).First(&role).Error
+	if err != nil {
+		return nil, err
+	}
+	return &role, nil
 }

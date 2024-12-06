@@ -41,12 +41,15 @@ const (
 	DefaultRoleNotFound         SubCategory = "DefaultRoleNotFound"
 	FailedToCreateUser          SubCategory = "FailedToCreateUser"
 	FailedToGetUsers            SubCategory = "FailedToGetUsers"
+	FailedToGetUserCount        SubCategory = "FailedToGetUserCount"
+	FailedToGetRole             SubCategory = "FailedToGetRole"
 	FailedConvertDto            SubCategory = "FailedConvertDto"
 	RecoverError                SubCategory = "Recover Error"
 	FailedToGetParticipation    SubCategory = "FailedToGetParticipation"
 	FailedToCreateParticipation SubCategory = "FailedToCreateParticipation"
 	FailedToUpdateUser          SubCategory = "FailedToUpdateUser"
 	FailedToParseDate           SubCategory = "FailedToParseDate"
+	FailedToGetPermissions SubCategory = "FailedToGetPermissions"
 )
 
 const (
