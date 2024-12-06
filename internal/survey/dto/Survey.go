@@ -1,6 +1,8 @@
 package dto
 
-import "time"
+import (
+	"time"
+)
 
 type SurveyCreateRequest struct {
 	Title              string                  `json:"title" validate:"required"`
@@ -56,4 +58,13 @@ type Choice struct {
 	ID        uint   `json:"choice_id"`
 	Text      string `json:"text"`
 	IsCorrect bool   `json:"is_correct"`
+}
+
+type UserSurveyParticipationResponse struct {
+	ID          uint      `json:"id"`
+	UserId      uint      `json:"user_id"`
+	SurveyID    uint      `json:"survey_id"`
+	StartAt     time.Time `json:"start_at"`
+	EndAt       time.Time `json:"end_at"`
+	CommittedAt time.Time `json:"committed_at"`
 }

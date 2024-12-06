@@ -20,6 +20,8 @@ func NewSurveyRouter(conf *config.Config, db db.DbService, serverGroup *echo.Gro
 	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewHandler(conf, db, logger)}
 }
 
-func (r *SurveyRouter) RegisterRoutes(db db.DbService) {
-	r.serverGroup.POST("/surveys", r.handler.CreateSurvey)
+func (r *SurveyRouter) RegisterRoutes() {
+	g := r.serverGroup.Group("/surveys")
+	g.POST("", r.handler.CreateSurvey)
+	g.GET("/:survey_id/start", r.handler.StartSurvey)
 }

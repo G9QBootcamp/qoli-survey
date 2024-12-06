@@ -69,3 +69,28 @@ func (h *UserHandler) Login(c echo.Context) error {
 		ExpiresAt: expiresAt,
 	})
 }
+func (h *UserHandler) UpdateUserProfile(c echo.Context) error {
+	userID, ok := c.Get("userID").(uint)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	var req dto.UpdateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid input"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	updatedUser, err := h.service.UpdateUserProfile(c.Request().Context(), userID, req)
+	if err != nil {
+		if err.Error() == "date of birth cannot be updated after 24 hours of registration" {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Unable to update profile"})
+	}
+
+	return c.JSON(http.StatusOK, updatedUser)
+}

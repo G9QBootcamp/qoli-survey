@@ -40,7 +40,19 @@ const (
 	FailedToGetUsers      SubCategory = "FailedToGetUsers"
 	FailedToGenerateToken SubCategory = "FailedToGenerateToken"
 
-	RecoverError SubCategory = "Recover Error"
+	RecoverError                SubCategory = "Recover Error"
+	Api                         SubCategory = "Api"
+	HashPassword                SubCategory = "HashPassword"
+	UserNotAuthorized           SubCategory = "UserNotAuthorized"
+	DefaultRoleNotFound         SubCategory = "DefaultRoleNotFound"
+	FailedToCreateUser          SubCategory = "FailedToCreateUser"
+	FailedToGetUsers            SubCategory = "FailedToGetUsers"
+	FailedConvertDto            SubCategory = "FailedConvertDto"
+	RecoverError                SubCategory = "Recover Error"
+	FailedToGetParticipation    SubCategory = "FailedToGetParticipation"
+	FailedToCreateParticipation SubCategory = "FailedToCreateParticipation"
+	FailedToUpdateUser          SubCategory = "FailedToUpdateUser"
+	FailedToParseDate           SubCategory = "FailedToParseDate"
 )
 
 const (

@@ -23,6 +23,6 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 
 	authRouter.RegisterRoutes()
 	userRouter.RegisterRoutes()
-	surveyRouter.RegisterRoutes(db)
+	surveyRouter.RegisterRoutes()
 	// Additional routers...
 }
