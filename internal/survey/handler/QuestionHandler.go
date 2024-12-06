@@ -26,8 +26,7 @@ func NewQuestionHandler(conf *config.Config, db db.DbService, logger logging.Log
 func (h *QuestionHandler) GetQuestion(c echo.Context) error {
 
 	question_id := c.Param("question_id")
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := 1, true
+	userID, ok := c.Get("userID").(uint)
 
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
@@ -53,8 +52,7 @@ func (h *QuestionHandler) GetQuestion(c echo.Context) error {
 }
 func (h *QuestionHandler) DeleteQuestion(c echo.Context) error {
 	question_id := c.Param("question_id")
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := 1, true
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}
@@ -75,8 +73,7 @@ func (h *QuestionHandler) DeleteQuestion(c echo.Context) error {
 
 func (h *QuestionHandler) GetQuestions(c echo.Context) error {
 
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := 1, true
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}
@@ -112,8 +109,7 @@ func (h *QuestionHandler) GetQuestions(c echo.Context) error {
 func (h *QuestionHandler) UpdateQuestion(c echo.Context) error {
 	question_id := c.Param("question_id")
 
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := uint(1), true
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}

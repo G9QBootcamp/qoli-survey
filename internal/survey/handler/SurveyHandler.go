@@ -65,8 +65,7 @@ func (h *SurveyHandler) CreateSurvey(c echo.Context) error {
 func (h *SurveyHandler) GetSurveys(c echo.Context) error {
 	var req dto.SurveysGetRequest
 
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := 1, true
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}
@@ -94,8 +93,7 @@ func (h *SurveyHandler) GetSurveys(c echo.Context) error {
 func (h *SurveyHandler) GetSurvey(c echo.Context) error {
 
 	survey_id := c.Param("survey_id")
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := 1, true
+	userID, ok := c.Get("userID").(uint)
 
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
@@ -121,8 +119,7 @@ func (h *SurveyHandler) GetSurvey(c echo.Context) error {
 }
 func (h *SurveyHandler) DeleteSurvey(c echo.Context) error {
 	survey_id := c.Param("survey_id")
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := 1, true
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}
@@ -143,8 +140,7 @@ func (h *SurveyHandler) DeleteSurvey(c echo.Context) error {
 func (h *SurveyHandler) StartSurvey(c echo.Context) error {
 
 	survey_id := c.Param("survey_id")
-	// userID, ok := c.Request().Context().Value("userID").(uint)
-	userID, ok := uint(1), true
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}
