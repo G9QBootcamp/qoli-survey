@@ -52,6 +52,23 @@ func (h *UserHandler) Signup(c echo.Context) error {
 	return c.JSON(http.StatusCreated, user)
 }
 
+func (h *UserHandler) Login(c echo.Context) error {
+	var req dto.LoginRequest
+
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	token, expiresAt, err := h.service.Login(c.Request().Context(), req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, dto.LoginResponse{
+		Token:     token,
+		ExpiresAt: expiresAt,
+	})
+}
 func (h *UserHandler) UpdateUserProfile(c echo.Context) error {
 	userID, ok := c.Get("userID").(uint)
 	if !ok {

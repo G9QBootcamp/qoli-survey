@@ -14,7 +14,8 @@ import (
 type IUserRepository interface {
 	GetUsers(ctx context.Context, filters dto.UserFilters) ([]models.User, error)
 	GetUserByID(ctx context.Context, userID uint) (*models.User, error)
-	CreateUser(ctx context.Context, user models.User) (models.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
+	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	DeleteUser(ctx context.Context, id uint) error
 	IsEmailOrNationalIDTaken(ctx context.Context, email, nationalID string) bool
 	UpdateUser(ctx context.Context, user *models.User) (*models.User, error)
@@ -84,7 +85,17 @@ func (r *UserRepository) GetUserByID(ctx context.Context, userID uint) (*models.
 	return &user, err
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, user models.User) (models.User, error) {
+func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user models.User
+
+	err := r.db.GetDb().WithContext(ctx).Where("email = ?", email).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &user, err
+}
+
+func (r *UserRepository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	err := r.db.GetDb().WithContext(ctx).Create(&user).Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Insert, "create user error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})

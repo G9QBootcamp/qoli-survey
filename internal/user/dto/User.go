@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 type UserResponse struct {
 	ID          uint   `json:"id"`
 	NationalID  string `json:"national_id"`
@@ -40,4 +42,14 @@ type UpdateUserRequest struct {
 	LastName    string `json:"last_name,omitempty" validate:"omitempty,min=1,max=100"`
 	DateOfBirth string `json:"date_of_birth,omitempty" validate:"omitempty,date"`
 	City        string `json:"city,omitempty" validate:"omitempty,min=1,max=100"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
+}
+
+type LoginResponse struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
