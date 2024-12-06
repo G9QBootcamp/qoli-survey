@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
+	middlewares "github.com/G9QBootcamp/qoli-survey/internal/middleware"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/handler"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"github.com/labstack/echo/v4"
@@ -22,9 +23,9 @@ func NewQuestionRouter(conf *config.Config, db db.DbService, routeGroup *echo.Gr
 
 func (r *QuestionRouter) RegisterRoutes() {
 	g := r.routeGroup.Group("/:survey_id")
-	g.GET("/questions", r.handler.GetQuestions)
-	g.DELETE("/questions/:question_id", r.handler.DeleteQuestion)
-	g.GET("/questions/:question_id", r.handler.GetQuestion)
-	g.PATCH("/questions/:question_id", r.handler.UpdateQuestion)
+	g.GET("/questions", r.handler.GetQuestions, middlewares.CheckPermission("view_survey", r.db))
+	g.DELETE("/questions/:question_id", r.handler.DeleteQuestion, middlewares.CheckPermission("edit_survey", r.db))
+	g.GET("/questions/:question_id", r.handler.GetQuestion, middlewares.CheckPermission("view_survey", r.db))
+	g.PATCH("/questions/:question_id", r.handler.UpdateQuestion, middlewares.CheckPermission("edit_survey", r.db))
 
 }
