@@ -106,7 +106,7 @@ func (s *UserService) Login(c context.Context, req dto.LoginRequest) (string, ti
 	}
 
 	if !user.EmailVerified {
-		s.logger.Error(logging.Internal, logging.UserNotAuthorized, "email is not verified", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		s.logger.Info(logging.Internal, logging.UserNotAuthorized, "email is not verified", map[logging.ExtraKey]interface{}{logging.Service: "UserService"})
 		return "", time.Time{}, errors.New("email is not verified")
 	}
 
