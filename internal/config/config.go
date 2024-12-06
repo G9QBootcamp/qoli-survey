@@ -45,8 +45,8 @@ type HTTPConfig struct {
 }
 
 type JWTConfig struct {
-	SecretKey     string `yml:"secret_key"`
-	ExpireMinutes int    `yml:"expire_minutes"`
+	SecretKey     string `yaml:"secret_key"`
+	ExpireMinutes int    `yaml:"expire_minutes"`
 }
 
 var (
