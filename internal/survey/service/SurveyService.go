@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
@@ -17,9 +18,15 @@ import (
 type ISurveyService interface {
 	CreateSurvey(c context.Context, req dto.SurveyCreateRequest) (*dto.SurveyResponse, error)
 	GetSurvey(c context.Context, id uint) (*dto.SurveyResponse, error)
+	GetSurveys(c context.Context, req dto.SurveysGetRequest) ([]*dto.SurveyResponse, error)
+	DeleteSurvey(c context.Context, id uint) error
 	CanUserParticipateToSurvey(c context.Context, userId uint, surveyId uint) (bool, error)
 	Participate(c context.Context, userId uint, surveyId uint) (*dto.UserSurveyParticipationResponse, error)
 	EndParticipation(c context.Context, participationId uint) error
+	CommitParticipation(c context.Context, participationId uint) error
+	CanUserVoteOnSurvey(c context.Context, userId uint, surveyId uint) (bool, error)
+	CommitVote(c context.Context, vote models.Vote) error
+	GetSurveyQuestionsInOrder(c context.Context, surveyId uint) (questionsAnswerMap dto.QuestionsAnswerMap, err error)
 }
 type SurveyService struct {
 	conf   *config.Config
@@ -27,7 +34,7 @@ type SurveyService struct {
 	logger logging.Logger
 }
 
-func New(conf *config.Config, repo repository.ISurveyRepository, logger logging.Logger) *SurveyService {
+func NewSurveyService(conf *config.Config, repo repository.ISurveyRepository, logger logging.Logger) *SurveyService {
 	return &SurveyService{conf: conf, repo: repo, logger: logger}
 }
 
@@ -77,13 +84,6 @@ func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequ
 			return nil, err
 		}
 
-		questionDTO := dto.Question{
-			ID:                question.ID,
-			Text:              question.Text,
-			HasMultipleChoice: question.HasMultipleChoice,
-			MediaUrl:          question.MediaUrl,
-		}
-
 		if question.HasMultipleChoice {
 			for _, choiceReq := range questionReq.Choices {
 				choice := models.Choice{
@@ -96,17 +96,8 @@ func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequ
 					return nil, err
 				}
 
-				choiceDTO := dto.Choice{
-					ID:        choice.ID,
-					Text:      choice.Text,
-					IsCorrect: choice.IsCorrect,
-				}
-
-				questionDTO.Choices = append(questionDTO.Choices, choiceDTO)
 			}
 		}
-
-		surveyResponseDTO.Questions = append(surveyResponseDTO.Questions, questionDTO)
 
 		questionMap[question.Text] = &question
 	}
@@ -135,6 +126,35 @@ func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequ
 
 	return surveyResponseDTO, nil
 }
+
+func (s *SurveyService) DeleteSurvey(c context.Context, id uint) error {
+	return s.repo.DeleteSurvey(c, id)
+}
+
+func (s *SurveyService) GetSurveys(c context.Context, req dto.SurveysGetRequest) (response []*dto.SurveyResponse, err error) {
+	limit := 10
+	offset := 0
+	if req.Page > 0 {
+		offset = limit * (req.Page - 1)
+	}
+
+	filter := dto.RepositoryFilter{Field: "title", Operator: "LIKE", Value: req.Title}
+	filters := []*dto.RepositoryFilter{&filter}
+	if req.UserId > 0 {
+		filters = append(filters, &dto.RepositoryFilter{Field: "owner_id", Operator: "=", Value: strconv.Itoa(req.UserId)})
+	}
+
+	sort := dto.RepositorySort{Field: "created_at", SortType: "desc"}
+	repo_req := dto.RepositoryRequest{Limit: uint(limit), Offset: uint(offset), Filters: filters, Sorts: []*dto.RepositorySort{&sort}}
+
+	surveys, err := s.repo.GetSurveys(c, &repo_req)
+	if err != nil {
+		return []*dto.SurveyResponse{}, err
+	}
+
+	return response, util.ConvertTypes(s.logger, surveys, &response)
+}
+
 func (s *SurveyService) GetSurvey(c context.Context, id uint) (*dto.SurveyResponse, error) {
 
 	survey, err := s.repo.GetSurveyByID(c, id)
@@ -143,6 +163,9 @@ func (s *SurveyService) GetSurvey(c context.Context, id uint) (*dto.SurveyRespon
 		return nil, err
 	}
 
+	if survey == nil {
+		return nil, nil
+	}
 	sResponse := dto.SurveyResponse{}
 
 	err = util.ConvertTypes(s.logger, survey, &sResponse)
@@ -214,4 +237,124 @@ func (s *SurveyService) EndParticipation(c context.Context, participationId uint
 	now := time.Now()
 	pr.EndAt = &now
 	return s.repo.UpdateUserParticipation(c, pr)
+}
+
+func (s *SurveyService) CommitParticipation(c context.Context, participationId uint) error {
+
+	pr, err := s.repo.GetUserParticipation(c, participationId)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToGetParticipation, "error in get user participation", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+
+		return err
+	}
+	now := time.Now()
+	pr.CommittedAt = &now
+	return s.repo.UpdateUserParticipation(c, pr)
+}
+
+func (s *SurveyService) CanUserVoteOnSurvey(c context.Context, userId uint, surveyId uint) (bool, error) {
+	participation, err := s.repo.GetLastUserParticipation(c, userId, surveyId)
+	if err != nil {
+		return false, err
+	}
+
+	if participation == nil {
+		return false, errors.New("you have not started survey yet")
+	}
+
+	if !participation.StartAt.IsZero() && participation.CommittedAt == nil && participation.EndAt == nil {
+		return false, errors.New("you have not started survey yet")
+	}
+	return true, nil
+}
+
+func (s *SurveyService) CommitVote(c context.Context, vote models.Vote) error {
+
+	v, err := s.repo.GetUserSurveyVote(c, vote.VoterID, vote.QuestionID)
+	if err != nil {
+		return err
+	}
+	if v != nil {
+		vote.ID = v.ID
+		_, err := s.repo.UpdateVote(c, &vote)
+		return err
+	}
+	_, err = s.repo.CreateVote(c, &vote)
+	return err
+
+}
+
+func (s *SurveyService) GetSurveyQuestionsInOrder(c context.Context, surveyId uint) (questionsAnswerMap dto.QuestionsAnswerMap, err error) {
+
+	survey, err := s.repo.GetSurveyByID(c, surveyId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if survey == nil {
+		return dto.QuestionsAnswerMap{}, nil
+	}
+
+	filter := dto.RepositoryFilter{Field: "survey_id", Operator: "=", Value: strconv.Itoa(int(surveyId))}
+	sort := dto.RepositorySort{Field: "\"order\"", SortType: "asc"}
+
+	questions, err := s.repo.GetQuestions(c,
+		&dto.RepositoryRequest{
+			Filters: []*dto.RepositoryFilter{&filter},
+			Sorts:   []*dto.RepositorySort{&sort},
+			With:    "Choices"})
+
+	if err != nil {
+		return dto.QuestionsAnswerMap{}, err
+	}
+
+	if len(questions) < 1 {
+		return dto.QuestionsAnswerMap{}, err
+	}
+
+	if !survey.IsSequential {
+		questions = util.ShuffleSlice(questions)
+	}
+
+	list := dto.QuestionList{}
+	err = util.ConvertTypes(s.logger, questions, &list)
+	if err != nil {
+		return dto.QuestionsAnswerMap{}, err
+	}
+
+	mapQuestions := list.ToMap()
+	savedQuestionIds := map[uint]bool{}
+
+	tempQuestionAnswer := map[dto.Answer]*dto.Question{}
+	for _, v := range list {
+
+		_, e := savedQuestionIds[v.ID]
+		if e {
+			continue
+		}
+		questionsAnswerMap = append(questionsAnswerMap, map[dto.Answer]*dto.Question{dto.NoAnswer: v})
+		savedQuestionIds[v.ID] = true
+		if len(v.Choices) > 0 {
+			for _, z := range v.Choices {
+				if z.LinkedQuestionID > 0 {
+					qid, e := mapQuestions[z.LinkedQuestionID]
+					if e {
+						tempQuestionAnswer[dto.Answer(z.Text)] = qid
+						savedQuestionIds[qid.ID] = true
+
+					}
+				}
+
+			}
+		}
+
+		if len(tempQuestionAnswer) > 0 {
+			questionsAnswerMap = append(questionsAnswerMap, tempQuestionAnswer)
+			tempQuestionAnswer = map[dto.Answer]*dto.Question{}
+		}
+	}
+
+	return questionsAnswerMap, nil
+
 }
