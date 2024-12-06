@@ -66,11 +66,16 @@ func (h *SurveyHandler) GetSurveys(c echo.Context) error {
 	var req dto.SurveysGetRequest
 
 	userID, ok := c.Get("userID").(uint)
+	role, _ := c.Get("role").(string)
+
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}
 
-	req.UserId = int(userID)
+	if role != "SuperAdmin" {
+		req.UserId = int(userID)
+
+	}
 
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
