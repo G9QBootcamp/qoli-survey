@@ -21,7 +21,9 @@ func NewUserRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group
 }
 
 func (r *UserRouter) RegisterRoutes() {
-	r.serverGroup.GET("/users", r.handler.GetUsers)
-	r.serverGroup.PATCH("/profile", r.handler.UpdateUserProfile)
+	g := r.serverGroup.Group("/users")
+	g.GET("", r.handler.GetUsers)
+	g.PATCH("/profile", r.handler.UpdateUserProfile)
+	g.GET("/profile", r.handler.GetProfile)
 
 }

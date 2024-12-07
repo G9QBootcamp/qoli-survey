@@ -74,3 +74,15 @@ func (h *UserHandler) UpdateUserProfile(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, updatedUser)
 }
+func (h *UserHandler) GetProfile(c echo.Context) error {
+	userID, ok := c.Get("userID").(uint)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	response, err := h.service.GetUser(c.Request().Context(), userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "error in get user profile"})
+	}
+	return c.JSON(http.StatusOK, response)
+}

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
+	notification "github.com/G9QBootcamp/qoli-survey/internal/notification/service"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
@@ -18,13 +19,14 @@ type IAccessService interface {
 	DeleteUserSurveyRole(c context.Context, surveyID uint, userID uint, roleID uint) error
 }
 type AccessService struct {
-	conf   *config.Config
-	repo   repository.IAccessRepository
-	logger logging.Logger
+	conf                *config.Config
+	repo                repository.IAccessRepository
+	logger              logging.Logger
+	notificationService notification.INotificationService
 }
 
-func NewAccessService(conf *config.Config, repo repository.IAccessRepository, logger logging.Logger) *AccessService {
-	return &AccessService{conf: conf, repo: repo, logger: logger}
+func NewAccessService(conf *config.Config, repo repository.IAccessRepository, logger logging.Logger, notificationService notification.INotificationService) *AccessService {
+	return &AccessService{conf: conf, repo: repo, logger: logger, notificationService: notificationService}
 }
 
 func (s *AccessService) SetRole(c context.Context, req dto.SurveyRoleAssignRequest) (*dto.SurveyRoleAssignResponse, error) {
@@ -66,6 +68,10 @@ func (s *AccessService) SetRole(c context.Context, req dto.SurveyRoleAssignReque
 	createdUsr, err := s.repo.CreateUserSurveyRole(c, usr)
 	if err != nil {
 		return nil, err
+	}
+	_, err = s.notificationService.Notify(c, usr.UserID, "new role : "+createdRole.Name+" assigned to you.")
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToSendNotify, "error in sending notify in access service", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
 	return &dto.SurveyRoleAssignResponse{
 		ID:          createdUsr.ID,
