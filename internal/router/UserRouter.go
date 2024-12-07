@@ -24,7 +24,4 @@ func (r *UserRouter) RegisterRoutes() {
 	r.serverGroup.GET("/users", r.handler.GetUsers)
 	r.serverGroup.PATCH("/profile", r.handler.UpdateUserProfile)
 
-	// TODO add AuthMiddleware that users signed up before
-	r.server.PATCH("/profile/notifications", r.handler.UpdateNotifications)
-
 }

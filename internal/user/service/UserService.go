@@ -19,7 +19,6 @@ type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
 	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
 	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
-	UpdateUserNotifications(userID uint, req *dto.UpdateNotificationsRequest) (*models.User, error)
 }
 type UserService struct {
 	conf   *config.Config
@@ -99,24 +98,6 @@ func ToUserResponse(user *models.User) *dto.UserResponse {
 	}
 }
 
-func (s *UserService) UpdateUserNotifications(userID uint, req *dto.UpdateNotificationsRequest) (*models.User, error) {
-	user, err := s.repo.FindByID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if req.SurveyCanceled != nil {
-		user.Notifications.SurveyCanceled = *req.SurveyCanceled
-	}
-	if req.VoteCanceled != nil {
-		user.Notifications.VoteCanceled = *req.VoteCanceled
-	}
-	if req.RoleAssigned != nil {
-		user.Notifications.RoleAssigned = *req.RoleAssigned
-	}
-
-	return s.repo.Update(user)
-}
 func (s *UserService) Login(c context.Context, req dto.LoginRequest) (string, time.Time, error) {
 	user, err := s.repo.GetUserByEmail(c, req.Email)
 	if err != nil {
