@@ -32,26 +32,23 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
-func (h *UserHandler) Signup(c echo.Context) error {
-	var req dto.SignupRequest
+func (h *UserHandler) Login(c echo.Context) error {
+	var req dto.LoginRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
-	if err := c.Validate(&req); err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
-	}
-
-	user, err := h.service.Signup(c.Request().Context(), req)
+	token, expiresAt, err := h.service.Login(c.Request().Context(), req)
 	if err != nil {
-		// Handle other errors as internal server errors
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, user)
+	return c.JSON(http.StatusOK, dto.LoginResponse{
+		Token:     token,
+		ExpiresAt: expiresAt,
+	})
 }
-
 func (h *UserHandler) UpdateUserProfile(c echo.Context) error {
 	userID, ok := c.Get("userID").(uint)
 	if !ok {

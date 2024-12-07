@@ -9,22 +9,20 @@ import (
 )
 
 type UserRouter struct {
-	conf    *config.Config
-	db      db.DbService
-	server  *echo.Echo
-	handler *handler.UserHandler
-	logger  logging.Logger
+	conf        *config.Config
+	db          db.DbService
+	serverGroup *echo.Group
+	handler     *handler.UserHandler
+	logger      logging.Logger
 }
 
-func NewUserRouter(conf *config.Config, db db.DbService, server *echo.Echo, logger logging.Logger) *UserRouter {
-	return &UserRouter{conf: conf, db: db, server: server, handler: handler.NewHandler(conf, db, logger), logger: logger}
+func NewUserRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *UserRouter {
+	return &UserRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewHandler(conf, db, logger), logger: logger}
 }
 
 func (r *UserRouter) RegisterRoutes() {
-	r.server.GET("/users", r.handler.GetUsers)
-	r.server.POST("/signup", r.handler.Signup)
-
-	r.server.PATCH("/profile", r.handler.UpdateUserProfile)
+	r.serverGroup.GET("/users", r.handler.GetUsers)
+	r.serverGroup.PATCH("/profile", r.handler.UpdateUserProfile)
 
 	// TODO add AuthMiddleware that users signed up before
 	r.server.PATCH("/profile/notifications", r.handler.UpdateNotifications)
