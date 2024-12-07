@@ -15,3 +15,10 @@ type ChoiceReport struct {
 	ID         uint    `json:"id"`
 	Percentage float64 `json:"percentage"`
 }
+
+type ReportResponse struct {
+	SurveyParticipation           string                          `json:"survey_participation"`
+	CorrectAnswers                []CorrectAnswerPercentageToShow `json:"correct_answers"`
+	SuddenlyFinishedParticipation string                          `json:"suddenly_finished_participation"`
+	ChoicesPercentage             []QuestionReport                `json:"choices_percentage"`
+}
