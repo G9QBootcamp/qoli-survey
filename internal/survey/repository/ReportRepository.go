@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
@@ -10,14 +11,14 @@ import (
 
 type IReportRepository interface {
 	GetSurveyParticipantsCount(ctx context.Context, surveyId uint) (int64, error)
+	GetTotalParticipatesForSurvey(ctx context.Context, surveyId uint) (int64, error)
 	GetSurveyParticipantsCountByPermissionId(ctx context.Context, surveyId uint, permissionId uint) (int64, error)
-	GetGivenAnswerCountByQuestionID(ctx context.Context, questionID uint, ans string) (int64, error)
 	GetTotalVotesToQuestionCount(ctx context.Context, qid uint) (int64, error)
-	GetTotalParticipateCountForSurvey(ctx context.Context, surveyId uint) (int64, error)
 	GetSuddenlyFinishedParticipatesForSurvey(ctx context.Context, surveyId uint) (int64, error)
 	GetQuestionsBySurveyID(ctx context.Context, sid uint) ([]models.Question, error)
-	GetCorrectChoiceByQuestionID(ctx context.Context, qid uint) (models.Choice, error)
+	GetCorrectChoiceByQuestionID(ctx context.Context, qid uint) (*models.Choice, error)
 	GetChoicesByQuestionID(ctx context.Context, qid uint) ([]models.Choice, error)
+	GetGivenAnswerCountByQuestionID(ctx context.Context, qid uint, answer string) (int64, error)
 }
 
 type ReportRepository struct {
@@ -35,20 +36,19 @@ func (r *ReportRepository) GetSurveyParticipantsCount(ctx context.Context, surve
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "get survey participants count error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 		count = 0
-		return count, err
 	}
 	return count, nil
 }
 func (r *ReportRepository) GetSurveyParticipantsCountByPermissionId(ctx context.Context, surveyId uint, permissionId uint) (int64, error) {
 	var count int64
-	err := r.db.GetDb().WithContext(ctx).Raw("select count(usr.user_id)"+
-		"where usr.survey_id = ? AND rp.permission_id = ?"+
-		"from user_survey_role as usr"+
-		"join role as r"+
-		"on usr.role_id = r.ID"+
-		"join role_permission as rp"+
-		"on r.ID = rp.role_id"+
-		"group by usr.user_id",
+	err := r.db.GetDb().WithContext(ctx).Raw("select count(usr.user_id) "+
+		"from user_survey_roles as usr "+
+		"join roles as r "+
+		"on usr.role_id = r.ID "+
+		"join role_permissions as rp "+
+		"on r.ID = rp.role_id "+
+		"where usr.survey_id = ? AND rp.permission_id = ? "+
+		"group by usr.user_id ",
 		surveyId,
 		permissionId).Scan(&count).Error
 	/*
@@ -65,45 +65,47 @@ func (r *ReportRepository) GetSurveyParticipantsCountByPermissionId(ctx context.
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "GetSurveyParticipantsCountByPermissionId error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
-	return count, err
+	return count, nil
 }
 
 func (r *ReportRepository) GetGivenAnswerCount(ctx context.Context, ans string) (int64, error) {
 	var count int64
-	err := r.db.GetDb().WithContext(ctx).Table("vote").Where("answer = ?", ans).Count(&count).Error
+	err := r.db.GetDb().WithContext(ctx).Table("votes").Where("answer = ?", ans).Count(&count).Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "GetGivenAnswerCount error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
-	return count, err
+	return count, nil
 }
 
 func (r *ReportRepository) GetTotalVotesToQuestionCount(ctx context.Context, qid uint) (int64, error) {
 	var count int64
-	err := r.db.GetDb().WithContext(ctx).Table("vote").Where("question_id = ?", qid).Count(&count).Error
+	err := r.db.GetDb().WithContext(ctx).Table("votes").Where("question_id = ?", qid).Count(&count).Error
 
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "GetTotalVotesToQuestionCount error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
-	return count, err
+	return count, nil
 }
+
 func (r *ReportRepository) GetTotalParticipatesForSurvey(ctx context.Context, surveyId uint) (int64, error) {
 	var count int64
-	err := r.db.GetDb().WithContext(ctx).Table("user_survey_participation").Where("survey_id = ?", surveyId).Count(&count).Error
+	err := r.db.GetDb().WithContext(ctx).Table("user_survey_participations").Where("survey_id = ?", surveyId).Count(&count).Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "GetTotalParticipatesForSurvey error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
-	return count, err
+	return count, nil
 }
+
 func (r *ReportRepository) GetSuddenlyFinishedParticipatesForSurvey(ctx context.Context, surveyId uint) (int64, error) {
 	var count int64
-	err := r.db.GetDb().WithContext(ctx).Table("user_survey_participation").
-		Where("survey_id = ? AND committed_at = null and ended_at != null", surveyId).
+	err := r.db.GetDb().WithContext(ctx).Table("user_survey_participations").
+		Where("survey_id = ? AND committed_at = NULL AND ended_at != NULL", surveyId).
 		Count(&count).
 		Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "GetSuddenlyFinishedParticipatesForSurvey error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
-	return count, err
+	return count, nil
 }
 
 func (r *ReportRepository) GetQuestionsBySurveyID(ctx context.Context, sid uint) ([]models.Question, error) {
@@ -111,25 +113,38 @@ func (r *ReportRepository) GetQuestionsBySurveyID(ctx context.Context, sid uint)
 	err := r.db.GetDb().WithContext(ctx).Where("survey_id = ?", sid).Find(&questions).Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "GetQuestionsBySurveyID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
-		return nil, err
+		return nil, nil
 	}
 	return questions, nil
 }
 
-func (r *ReportRepository) GetCorrectChoiceByQuestionID(ctx context.Context, qid uint) (models.Choice, error) {
+func (r *ReportRepository) GetCorrectChoiceByQuestionID(ctx context.Context, qid uint) (*models.Choice, error) {
 	var choice models.Choice
 	err := r.db.GetDb().WithContext(ctx).Where("question_id = ? AND is_correct = true", qid).First(&choice).Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Select, "GetCorrectChoiceByQuestionID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return nil, nil
 	}
-	return choice, err
+	return &choice, nil
 }
 
 func (r *ReportRepository) GetChoicesByQuestionID(ctx context.Context, qid uint) ([]models.Choice, error) {
 	var choices []models.Choice
 	err := r.db.GetDb().WithContext(ctx).Where("question_id = ?", qid).Find(&choices).Error
 	if err != nil {
-		r.logger.Error(logging.Database, logging.Select, "GetCorrectChoiceByQuestionID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		r.logger.Error(logging.Database, logging.Select, "GetChoicesByQuestionID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return nil, nil
 	}
-	return choices, err
+	return choices, nil
+}
+
+func (r *ReportRepository) GetGivenAnswerCountByQuestionID(ctx context.Context, qid uint, answer string) (int64, error) {
+	var count int64
+	err := r.db.GetDb().WithContext(ctx).Table("votes").Where("question_id = ? AND answer = ?", qid, answer).Count(&count).Error
+
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Select, "GetGivenAnswerCountByQuestionID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return 0, nil
+	}
+	return count, nil
 }
