@@ -6,6 +6,7 @@ import (
 
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
+	userModels "github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"gorm.io/gorm"
 )
@@ -21,6 +22,8 @@ type ISurveyRepository interface {
 	CreateUserParticipation(ctx context.Context, participation *models.UserSurveyParticipation) (*models.UserSurveyParticipation, error)
 	UpdateUserParticipation(ctx context.Context, participation *models.UserSurveyParticipation) error
 	GetUserParticipation(ctx context.Context, participationId uint) (*models.UserSurveyParticipation, error)
+	CheckVoteVisibility(surveyID, viewerID, respondentID uint) (bool, error)
+	GetVotes(surveyID, respondentID uint) ([]models.Vote, error)
 }
 
 type SurveyRepository struct {
@@ -120,4 +123,23 @@ func (r *SurveyRepository) GetUserParticipation(ctx context.Context, participati
 		return nil, nil
 	}
 	return &p, err
+}
+
+func (r *SurveyRepository) CheckVoteVisibility(surveyID, viewerID, respondentID uint) (bool, error) {
+	var visibility userModels.VoteVisibility
+	err := r.db.GetDb().Where("survey_id = ? AND viewer_id = ? AND respondent_id = ?", surveyID, viewerID, respondentID).
+		First(&visibility).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *SurveyRepository) GetVotes(surveyID, respondentID uint) ([]models.Vote, error) {
+	var votes []models.Vote
+	err := r.db.GetDb().Where("question_id = ? AND voter_id = ?", surveyID, respondentID).Find(&votes).Error
+	return votes, err
 }

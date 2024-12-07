@@ -24,4 +24,6 @@ func (r *SurveyRouter) RegisterRoutes() {
 	g := r.serverGroup.Group("/surveys")
 	g.POST("", r.handler.CreateSurvey)
 	g.GET("/:survey_id/start", r.handler.StartSurvey)
+	g.GET("/votes/:survey_id/user/:user_id", r.handler.GetUserVotes)
+
 }
