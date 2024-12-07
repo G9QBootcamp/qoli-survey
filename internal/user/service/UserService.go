@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
+	"golang.org/x/net/context"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
@@ -12,13 +13,13 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/util"
 	"github.com/G9QBootcamp/qoli-survey/pkg/jwtutils"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
-	"golang.org/x/net/context"
 )
 
 type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
 	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
 	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
+	GetUser(c context.Context, id uint) (*dto.UserResponse, error)
 }
 type UserService struct {
 	conf   *config.Config
@@ -123,4 +124,22 @@ func (s *UserService) Login(c context.Context, req dto.LoginRequest) (string, ti
 	}
 
 	return token, expiresAt, nil
+}
+
+func (s *UserService) GetUser(c context.Context, id uint) (*dto.UserResponse, error) {
+	survey, err := s.repo.GetUserByID(c, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	sResponse := dto.UserResponse{}
+
+	err = util.ConvertTypes(s.logger, survey, &sResponse)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &sResponse, nil
 }
