@@ -20,6 +20,7 @@ type ISurveyService interface {
 	CanUserParticipateToSurvey(c context.Context, userId uint, surveyId uint) (bool, error)
 	Participate(c context.Context, userId uint, surveyId uint) (*dto.UserSurveyParticipationResponse, error)
 	EndParticipation(c context.Context, participationId uint) error
+	GetVotes(surveyID, viewerID, respondentID uint) ([]map[string]interface{}, error)
 }
 type SurveyService struct {
 	conf   *config.Config
@@ -214,4 +215,29 @@ func (s *SurveyService) EndParticipation(c context.Context, participationId uint
 	now := time.Now()
 	pr.EndAt = &now
 	return s.repo.UpdateUserParticipation(c, pr)
+}
+
+func (s *SurveyService) GetVotes(surveyID, viewerID, respondentID uint) ([]map[string]interface{}, error) {
+	hasPermission, err := s.repo.CheckVoteVisibility(surveyID, viewerID, respondentID)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPermission {
+		return nil, errors.New("viewer does not have permission to view respondent's votes")
+	}
+
+	votes, err := s.repo.GetVotes(surveyID, respondentID)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]map[string]interface{}, len(votes))
+	for i, vote := range votes {
+		response[i] = map[string]interface{}{
+			"question_id": vote.QuestionID,
+			"answer":      vote.Answer,
+		}
+	}
+
+	return response, nil
 }
