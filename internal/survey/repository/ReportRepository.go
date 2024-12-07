@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
@@ -10,10 +11,13 @@ import (
 type IReportRepository interface {
 	GetSurveyParticipantsCount(ctx context.Context, surveyId uint) (int64, error)
 	GetSurveyParticipantsCountByPermissionId(ctx context.Context, surveyId uint, permissionId uint) (int64, error)
-	GetGivenAnswerCount(ctx context.Context, ans string) (int64, error)
+	GetGivenAnswerCountByQuestionID(ctx context.Context, questionID uint, ans string) (int64, error)
 	GetTotalVotesToQuestionCount(ctx context.Context, qid uint) (int64, error)
 	GetTotalParticipateCountForSurvey(ctx context.Context, surveyId uint) (int64, error)
 	GetSuddenlyFinishedParticipatesForSurvey(ctx context.Context, surveyId uint) (int64, error)
+	GetQuestionsBySurveyID(ctx context.Context, sid uint) ([]models.Question, error)
+	GetCorrectChoiceByQuestionID(ctx context.Context, qid uint) (models.Choice, error)
+	GetChoicesByQuestionID(ctx context.Context, qid uint) ([]models.Choice, error)
 }
 
 type ReportRepository struct {
@@ -100,4 +104,32 @@ func (r *ReportRepository) GetSuddenlyFinishedParticipatesForSurvey(ctx context.
 		r.logger.Error(logging.Database, logging.Select, "GetSuddenlyFinishedParticipatesForSurvey error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
 	return count, err
+}
+
+func (r *ReportRepository) GetQuestionsBySurveyID(ctx context.Context, sid uint) ([]models.Question, error) {
+	var questions []models.Question
+	err := r.db.GetDb().WithContext(ctx).Where("survey_id = ?", sid).Find(&questions).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Select, "GetQuestionsBySurveyID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return nil, err
+	}
+	return questions, nil
+}
+
+func (r *ReportRepository) GetCorrectChoiceByQuestionID(ctx context.Context, qid uint) (models.Choice, error) {
+	var choice models.Choice
+	err := r.db.GetDb().WithContext(ctx).Where("question_id = ? AND is_correct = true", qid).First(&choice).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Select, "GetCorrectChoiceByQuestionID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return choice, err
+}
+
+func (r *ReportRepository) GetChoicesByQuestionID(ctx context.Context, qid uint) ([]models.Choice, error) {
+	var choices []models.Choice
+	err := r.db.GetDb().WithContext(ctx).Where("question_id = ?", qid).Find(&choices).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Select, "GetCorrectChoiceByQuestionID error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return choices, err
 }
