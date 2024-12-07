@@ -36,6 +36,7 @@ func (r *SurveyRouter) RegisterRoutes() {
 	g.GET("/:survey_id/start", r.handler.StartSurvey, middlewares.CheckPermission("vote", r.db))
 	g.GET("/:survey_id/reports", r.reportHandler.GetSurveyReport, middlewares.CheckPermission("view_survey_reports", r.db))
 	g.POST("/reports-to-csv", r.reportHandler.GenerateAllSurveysReport)
+	g.GET("/votes/:survey_id/user/:user_id", r.handler.GetUserVotes)
 
 	questionRouter := NewQuestionRouter(r.conf, r.db, g, r.logger)
 	questionRouter.RegisterRoutes()

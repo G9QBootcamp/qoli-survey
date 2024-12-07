@@ -28,6 +28,7 @@ type ISurveyService interface {
 	CanUserVoteOnSurvey(c context.Context, userId uint, surveyId uint) (bool, error)
 	CommitVote(c context.Context, vote models.Vote) error
 	GetSurveyQuestionsInOrder(c context.Context, surveyId uint) (questionsAnswerMap dto.QuestionsAnswerMap, err error)
+	GetVotes(surveyID, viewerID, respondentID uint) ([]map[string]interface{}, error)
 }
 type SurveyService struct {
 	conf                *config.Config
@@ -369,5 +370,29 @@ func (s *SurveyService) GetSurveyQuestionsInOrder(c context.Context, surveyId ui
 	}
 
 	return questionsAnswerMap, nil
+}
 
+func (s *SurveyService) GetVotes(surveyID, viewerID, respondentID uint) ([]map[string]interface{}, error) {
+	hasPermission, err := s.repo.CheckVoteVisibility(surveyID, viewerID, respondentID)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPermission {
+		return nil, errors.New("viewer does not have permission to view respondent's votes")
+	}
+
+	votes, err := s.repo.GetVotes(surveyID, respondentID)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]map[string]interface{}, len(votes))
+	for i, vote := range votes {
+		response[i] = map[string]interface{}{
+			"question_id": vote.QuestionID,
+			"answer":      vote.Answer,
+		}
+	}
+
+	return response, nil
 }

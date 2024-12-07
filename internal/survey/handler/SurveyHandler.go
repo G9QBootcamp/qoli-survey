@@ -402,3 +402,22 @@ func (h *SurveyHandler) readAnswers(c context.Context, conn *websocket.Conn, par
 		return
 	}
 }
+
+func (h *SurveyHandler) GetUserVotes(c echo.Context) error {
+	viewerID := c.Get("user_id").(uint)
+	surveyID, err := strconv.ParseUint(c.Param("survey_id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid survey_id"})
+	}
+	respondentID, err := strconv.ParseUint(c.Param("user_id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid user_id"})
+	}
+
+	votes, err := h.service.GetVotes(uint(surveyID), viewerID, uint(respondentID))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{"votes": votes})
+}
