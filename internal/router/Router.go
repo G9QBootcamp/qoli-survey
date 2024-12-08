@@ -17,7 +17,7 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 	apiGroup.Use(middlewares.JWTAuth(conf.JWT.SecretKey))
 
 	userRouter := NewUserRouter(conf, db, apiGroup, logger)
-	surveyRouter := NewSurveyRouter(conf, db, apiGroup, logger)
+	surveyRouter := NewSurveyRouter(conf, db, apiGroup, logger, notificationService)
 	accessRouter := NewAccessRouter(conf, db, apiGroup, logger, notificationService)
 	notificationRouter := NewNotificationRouter(conf, db, apiGroup, logger, notificationService)
 

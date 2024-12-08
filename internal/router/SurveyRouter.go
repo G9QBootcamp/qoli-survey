@@ -4,6 +4,7 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	middlewares "github.com/G9QBootcamp/qoli-survey/internal/middleware"
+	notification "github.com/G9QBootcamp/qoli-survey/internal/notification/service"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/handler"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"github.com/labstack/echo/v4"
@@ -17,8 +18,8 @@ type SurveyRouter struct {
 	logger      logging.Logger
 }
 
-func NewSurveyRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *SurveyRouter {
-	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewSurveyHandler(conf, db, logger), logger: logger}
+func NewSurveyRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger, notificationService notification.INotificationService) *SurveyRouter {
+	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewSurveyHandler(conf, db, logger, notificationService), logger: logger}
 }
 
 func (r *SurveyRouter) RegisterRoutes() {
