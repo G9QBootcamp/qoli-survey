@@ -34,6 +34,11 @@ type UpdateUserRequest struct {
 	City        string `json:"city,omitempty" validate:"omitempty,min=1,max=100"`
 }
 
+type UpdateNotificationsRequest struct {
+	SurveyCanceled *bool `json:"survey_canceled"`
+	VoteCanceled   *bool `json:"vote_canceled"`
+	RoleAssigned   *bool `json:"role_assigned"`
+}
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
