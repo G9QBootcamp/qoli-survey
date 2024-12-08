@@ -12,5 +12,5 @@ type Vote struct {
 	Answer     string      `gorm:"not null"`
 	Duration   int         `gorm:"default:0"`
 	Voter      models.User `gorm:"foreignKey:VoterID;references:ID;constraint:OnDelete:CASCADE;"`
-	Question   Survey      `gorm:"foreignKey:QuestionID;references:ID;constraint:OnDelete:CASCADE;"`
+	Question   Question    `gorm:"foreignKey:QuestionID;references:ID;constraint:OnDelete:CASCADE;"`
 }
