@@ -21,6 +21,7 @@ type ISurveyService interface {
 	Participate(c context.Context, userId uint, surveyId uint) (*dto.UserSurveyParticipationResponse, error)
 	EndParticipation(c context.Context, participationId uint) error
 	GetVotes(surveyID, viewerID, respondentID uint) ([]map[string]interface{}, error)
+	GetVisibleVoteUsers(surveyID, viewerID uint) ([]map[string]interface{}, error)
 }
 type SurveyService struct {
 	conf   *config.Config
@@ -240,4 +241,13 @@ func (s *SurveyService) GetVotes(surveyID, viewerID, respondentID uint) ([]map[s
 	}
 
 	return response, nil
+}
+
+func (s *SurveyService) GetVisibleVoteUsers(surveyID, viewerID uint) ([]map[string]interface{}, error) {
+	users, err := s.repo.GetVisibleVoteUsers(surveyID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
