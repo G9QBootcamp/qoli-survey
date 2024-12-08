@@ -6,6 +6,7 @@ import (
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
+	notificationService "github.com/G9QBootcamp/qoli-survey/internal/notification/service"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/service"
@@ -20,8 +21,8 @@ type AccessHandler struct {
 	logger  logging.Logger
 }
 
-func NewAccessHandler(conf *config.Config, db db.DbService, logger logging.Logger) *AccessHandler {
-	return &AccessHandler{conf: conf, db: db, service: service.NewAccessService(conf, repository.NewAccessRepository(db, logger), logger), logger: logger}
+func NewAccessHandler(conf *config.Config, db db.DbService, logger logging.Logger, notificationService notificationService.INotificationService) *AccessHandler {
+	return &AccessHandler{conf: conf, db: db, service: service.NewAccessService(conf, repository.NewAccessRepository(db, logger), logger, notificationService), logger: logger}
 }
 
 func (h *AccessHandler) SetRole(c echo.Context) error {
