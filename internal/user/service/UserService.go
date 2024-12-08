@@ -17,6 +17,7 @@ import (
 
 type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
+	SetMaxSurveys(ctx context.Context, userID string, maxSurveys int) error
 	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
 	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 	GetUser(c context.Context, id uint) (*dto.UserResponse, error)
@@ -142,4 +143,15 @@ func (s *UserService) GetUser(c context.Context, id uint) (*dto.UserResponse, er
 	}
 
 	return &sResponse, nil
+}
+
+func (s *UserService) SetMaxSurveys(ctx context.Context, userID string, maxSurveys int) error {
+	if err := s.repo.UpdateMaxSurveys(ctx, userID, maxSurveys); err != nil {
+		s.logger.Error(logging.Internal, logging.Update, "failed to update max surveys", map[logging.ExtraKey]interface{}{
+			logging.Service:      "UserService",
+			logging.ErrorMessage: err.Error(),
+		})
+		return err
+	}
+	return nil
 }

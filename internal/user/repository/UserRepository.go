@@ -18,6 +18,7 @@ type IUserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	DeleteUser(ctx context.Context, id uint) error
 	IsEmailOrNationalIDTaken(ctx context.Context, email, nationalID string) bool
+	UpdateMaxSurveys(ctx context.Context, userID string, maxSurveys int) error
 	UpdateUser(ctx context.Context, user *models.User) (*models.User, error)
 	GetUserCount(ctx context.Context) (int64, error)
 	GetRoleByName(ctx context.Context, roleName string) (*models.Role, error)
@@ -115,6 +116,15 @@ func (r *UserRepository) IsEmailOrNationalIDTaken(ctx context.Context, email, na
 	return !errors.Is(err, gorm.ErrRecordNotFound)
 }
 
+func (r *UserRepository) UpdateMaxSurveys(ctx context.Context, userID string, maxSurveys int) error {
+	err := r.db.GetDb().WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("max_surveys", maxSurveys).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Update, "failed to update max surveys", map[logging.ExtraKey]interface{}{
+			logging.ErrorMessage: err.Error(),
+		})
+	}
+	return err
+}
 func (r *UserRepository) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	if err := r.db.GetDb().WithContext(ctx).Save(user).Error; err != nil {
 		return nil, err

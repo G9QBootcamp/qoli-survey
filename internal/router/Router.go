@@ -25,7 +25,7 @@ func RegisterRoutes(conf *config.Config, db db.DbService, server *server.Server,
 	authRouter := NewAuthRouter(conf, db, authGroup, logger)
 
 	authRouter.RegisterRoutes()
-	userRouter.RegisterRoutes()
+	userRouter.RegisterRoutes(db)
 	surveyRouter.RegisterRoutes()
 	accessRouter.RegisterRoutes(db)
 	notificationRouter.RegisterRoutes()
