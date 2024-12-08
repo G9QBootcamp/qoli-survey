@@ -18,7 +18,7 @@ type SurveyRouter struct {
 }
 
 func NewSurveyRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *SurveyRouter {
-	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewSurveyHandler(conf, db, logger)}
+	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewSurveyHandler(conf, db, logger), logger: logger}
 }
 
 func (r *SurveyRouter) RegisterRoutes() {
