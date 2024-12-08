@@ -90,7 +90,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, userID uint) (*models.
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
 
-	err := r.db.GetDb().WithContext(ctx).Where("email = ?", email).First(&user).Error
+	err := r.db.GetDb().WithContext(ctx).Preload("GlobalRole").Where("email = ?", email).First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

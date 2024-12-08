@@ -16,3 +16,16 @@ func GenerateNumericString(length int) string {
 
 	return string(numericString)
 }
+
+func ShuffleSlice[T any](slice []T) []T {
+	rand.Seed(uint64(time.Now().UnixNano()))
+	shuffled := make([]T, len(slice))
+	copy(shuffled, slice)
+
+	for i := len(shuffled) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	}
+
+	return shuffled
+}
