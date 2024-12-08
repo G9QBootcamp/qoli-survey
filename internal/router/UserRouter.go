@@ -10,21 +10,24 @@ import (
 )
 
 type UserRouter struct {
-	conf    *config.Config
-	db      db.DbService
-	server  *echo.Echo
-	handler *handler.UserHandler
-	logger  logging.Logger
+	conf        *config.Config
+	db          db.DbService
+	serverGroup *echo.Group
+	handler     *handler.UserHandler
+	logger      logging.Logger
 }
 
-func NewUserRouter(conf *config.Config, db db.DbService, server *echo.Echo, logger logging.Logger) *UserRouter {
-	return &UserRouter{conf: conf, db: db, server: server, handler: handler.NewHandler(conf, db, logger), logger: logger}
+func NewUserRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger) *UserRouter {
+	return &UserRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewHandler(conf, db, logger), logger: logger}
 }
 
 func (r *UserRouter) RegisterRoutes(db db.DbService) {
-	r.server.GET("/users", r.handler.GetUsers)
-	r.server.POST("/signup", r.handler.Signup)
-	r.server.POST("/restrict/user/:user_id",
+	r.serverGroup.POST("/restrict/user/:user_id",
 		r.handler.RestrictUserSurveys,
 		middlewares.CheckPermission("restrict_user", db))
+	g := r.serverGroup.Group("/users")
+	g.GET("", r.handler.GetUsers)
+	g.PATCH("/profile", r.handler.UpdateUserProfile)
+	g.GET("/profile", r.handler.GetProfile)
+
 }

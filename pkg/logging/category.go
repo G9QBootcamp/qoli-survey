@@ -31,14 +31,28 @@ const (
 	QuestionnaireValidationFailed SubCategory = "QuestionnaireValidationFailed"
 
 	// Internal
-	Api                 SubCategory = "Api"
-	HashPassword        SubCategory = "HashPassword"
-	UserNotAuthorized   SubCategory = "UserNotAuthorized"
-	DefaultRoleNotFound SubCategory = "DefaultRoleNotFound"
-	FailedToCreateUser  SubCategory = "FailedToCreateUser"
-	FailedToGetUsers    SubCategory = "FailedToGetUsers"
 
-	RecoverError SubCategory = "Recover Error"
+	UserNotFound          SubCategory = "UserNotFound"
+	FailedToGenerateToken SubCategory = "FailedToGenerateToken"
+
+	Api                         SubCategory = "Api"
+	HashPassword                SubCategory = "HashPassword"
+	UserNotAuthorized           SubCategory = "UserNotAuthorized"
+	DefaultRoleNotFound         SubCategory = "DefaultRoleNotFound"
+	FailedToCreateUser          SubCategory = "FailedToCreateUser"
+	FailedToGetUsers            SubCategory = "FailedToGetUsers"
+	FailedToGetUserCount        SubCategory = "FailedToGetUserCount"
+	FailedToGetRole             SubCategory = "FailedToGetRole"
+	FailedConvertDto            SubCategory = "FailedConvertDto"
+	RecoverError                SubCategory = "Recover Error"
+	FailedToGetParticipation    SubCategory = "FailedToGetParticipation"
+	FailedToCreateParticipation SubCategory = "FailedToCreateParticipation"
+	FailedToUpdateUser          SubCategory = "FailedToUpdateUser"
+	FailedToParseDate           SubCategory = "FailedToParseDate"
+	FailedToGetPermissions      SubCategory = "FailedToGetPermissions"
+	FailedToSendNotify          SubCategory = "FailedToSendNotify"
+	FailedToGetNotifications    SubCategory = "FailedToGetNotifications"
+	FailedToSeenNotifications   SubCategory = "FailedToSeenNotifications"
 )
 
 const (

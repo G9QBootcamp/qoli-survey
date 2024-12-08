@@ -2,21 +2,25 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
+	"golang.org/x/net/context"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/util"
+	"github.com/G9QBootcamp/qoli-survey/pkg/jwtutils"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
-	"golang.org/x/net/context"
 )
 
 type IUserService interface {
 	GetUsers(context.Context, dto.UserGetRequest) ([]*dto.UserResponse, error)
-	Signup(c context.Context, req dto.SignupRequest) (*dto.UserResponse, error)
 	SetMaxSurveys(ctx context.Context, userID string, maxSurveys int) error
+	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
+	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
+	GetUser(c context.Context, id uint) (*dto.UserResponse, error)
 }
 type UserService struct {
 	conf   *config.Config
@@ -38,59 +42,107 @@ func (s *UserService) GetUsers(c context.Context, r dto.UserGetRequest) ([]*dto.
 	usersResponse := []*dto.UserResponse{}
 
 	for _, user := range users {
-		usersResponse = append(usersResponse, &dto.UserResponse{
-			ID:          user.ID,
-			NationalID:  user.NationalID,
-			Email:       user.Email,
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			City:        user.City,
-			DateOfBirth: user.DateOfBirth,
-		})
+		usersResponse = append(usersResponse, ToUserResponse(&user))
 	}
 	return usersResponse, nil
 }
 
-func (s *UserService) Signup(c context.Context, req dto.SignupRequest) (*dto.UserResponse, error) {
-
-	user := models.User{
-		NationalID:   req.NationalID,
-		Email:        req.Email,
-		PasswordHash: req.Password,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		City:         req.City,
-		DateOfBirth:  req.DateOfBirth,
+func (s *UserService) UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error) {
+	user, err := s.repo.GetUserByID(c, userID)
+	if err != nil || user == nil {
+		return nil, errors.New("user not found")
 	}
 
-	if s.repo.IsEmailOrNationalIDTaken(c, user.Email, user.NationalID) {
-		return nil, errors.New("email or national ID already in use")
+	if req.FirstName != "" {
+		user.FirstName = req.FirstName
+	}
+	if req.LastName != "" {
+		user.LastName = req.LastName
+	}
+	if req.DateOfBirth != "" {
+		dateOfBirth, err := time.Parse("2006-01-02", req.DateOfBirth) // Assuming format "YYYY-MM-DD"
+		if err != nil {
+			return nil, errors.New("invalid date format")
+		}
+		if time.Since(user.CreatedAt) > 24*time.Hour {
+			return nil, errors.New("date of birth cannot be updated after 24 hours of registration")
+		}
+		user.DateOfBirth = dateOfBirth
+	}
+	if req.City != "" {
+		user.City = req.City
 	}
 
-	hashedPassword, err := util.HashPassword(req.Password)
+	updatedUser, err := s.repo.UpdateUser(c, user)
 	if err != nil {
-		s.logger.Error(logging.Internal, logging.HashPassword, "failed to hash password", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		s.logger.Error(logging.Internal, logging.FailedToUpdateUser, "error in updating user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
 
 		return nil, err
 	}
-	user.PasswordHash = hashedPassword
 
-	user, err = s.repo.CreateUser(c, user)
-	if err != nil {
-		s.logger.Error(logging.Internal, logging.FailedToCreateUser, "error in create user", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+	return ToUserResponse(updatedUser), nil
+}
 
-		return nil, err
+func ToUserResponse(user *models.User) *dto.UserResponse {
+	var dateOfBirth string
+
+	if !user.DateOfBirth.IsZero() {
+		formattedDate := user.DateOfBirth.Format("2006-01-02")
+		dateOfBirth = formattedDate
 	}
 
 	return &dto.UserResponse{
 		ID:          user.ID,
-		NationalID:  user.NationalID,
-		Email:       user.Email,
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
+		DateOfBirth: dateOfBirth,
 		City:        user.City,
-		DateOfBirth: user.DateOfBirth,
-	}, nil
+	}
+}
+
+func (s *UserService) Login(c context.Context, req dto.LoginRequest) (string, time.Time, error) {
+	user, err := s.repo.GetUserByEmail(c, req.Email)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.UserNotAuthorized, "invalid email", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		return "", time.Time{}, errors.New("invalid email")
+	}
+
+	if !user.EmailVerified {
+		s.logger.Info(logging.Internal, logging.UserNotAuthorized, "email is not verified", map[logging.ExtraKey]interface{}{logging.Service: "UserService"})
+		return "", time.Time{}, errors.New("email is not verified")
+	}
+
+	if err := util.CheckPassword(req.Password, user.PasswordHash); err != nil {
+		s.logger.Error(logging.Internal, logging.UserNotAuthorized, "invalid email", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		return "", time.Time{}, errors.New("invalid password")
+	}
+
+	expiresAt := time.Now().Add(time.Duration(s.conf.JWT.ExpireMinutes) * time.Minute)
+	token, err := jwtutils.GenerateToken(user.ID, user.GlobalRole.Name, s.conf.JWT.SecretKey, s.conf.JWT.ExpireMinutes)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.FailedToGenerateToken, "generate token error", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
+		return "", time.Time{}, errors.New("failed to generate token")
+	}
+
+	return token, expiresAt, nil
+}
+
+func (s *UserService) GetUser(c context.Context, id uint) (*dto.UserResponse, error) {
+	survey, err := s.repo.GetUserByID(c, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	sResponse := dto.UserResponse{}
+
+	err = util.ConvertTypes(s.logger, survey, &sResponse)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &sResponse, nil
 }
 
 func (s *UserService) SetMaxSurveys(ctx context.Context, userID string, maxSurveys int) error {

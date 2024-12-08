@@ -3,6 +3,7 @@ package validation
 import (
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/go-playground/validator"
 )
@@ -33,6 +34,15 @@ func ValidateIranianNationalID(fl validator.FieldLevel) bool {
 	return true
 }
 
+func ValidateDateFormat(fl validator.FieldLevel) bool {
+	dateStr := fl.Field().String()
+
+	_, err := time.Parse("2006-01-02", dateStr)
+	return err == nil
+}
+
 func RegisterCustomValidation(v *validator.Validate) {
 	v.RegisterValidation("national_id", ValidateIranianNationalID)
+	v.RegisterValidation("date", ValidateDateFormat)
+
 }

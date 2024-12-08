@@ -17,6 +17,8 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	HTTP     HTTPConfig     `yaml:"http"`
 	Logging  LoggerConfig   `yaml:"logging"`
+	JWT      JWTConfig      `yaml:"jwt"`
+	Email    EmailConfig    `yaml:"email"`
 }
 
 type DatabaseConfig struct {
@@ -41,6 +43,19 @@ type LoggerConfig struct {
 type HTTPConfig struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
+}
+
+type JWTConfig struct {
+	SecretKey     string `yaml:"secret_key"`
+	ExpireMinutes int    `yaml:"expire_minutes"`
+}
+
+type EmailConfig struct {
+	SMTPServer string `yaml:"smtp_server"`
+	SMTPPort   string `yaml:"smtp_port"`
+	SMTPUser   string `yaml:"smtp_user"`
+	SMTPPass   string `yaml:"smtp_pass"`
+	FromEmail  string `yaml:"from_email"`
 }
 
 var (

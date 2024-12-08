@@ -14,7 +14,7 @@ func TestCrudUserRepository(t *testing.T) {
 	nationalId := util.GenerateNumericString(10)
 	ctx := context.Background()
 
-	user, err := testUserRepo.CreateUser(ctx, models.User{FirstName: "test_name", LastName: "last_name", RoleID: 1, NationalID: nationalId, City: "tehran", Email: nationalId + "@gmail.com", PasswordHash: "kjfqwnion4"})
+	user, err := testUserRepo.CreateUser(ctx, &models.User{FirstName: "test_name", LastName: "last_name", RoleID: 1, NationalID: nationalId, City: "tehran", Email: nationalId + "@gmail.com", PasswordHash: "kjfqwnion4"})
 	if err != nil {
 		t.Fatalf("failed to create user in user repository: %s", err.Error())
 
