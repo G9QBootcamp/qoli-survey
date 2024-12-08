@@ -13,8 +13,10 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
 	"github.com/gorilla/websocket"
 
+	notification "github.com/G9QBootcamp/qoli-survey/internal/notification/service"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/service"
+
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"github.com/labstack/echo/v4"
 )
@@ -32,8 +34,8 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewSurveyHandler(conf *config.Config, db db.DbService, logger logging.Logger) *SurveyHandler {
-	return &SurveyHandler{conf: conf, db: db, service: service.NewSurveyService(conf, repository.NewSurveyRepository(db, logger), logger), logger: logger}
+func NewSurveyHandler(conf *config.Config, db db.DbService, logger logging.Logger, notificationService notification.INotificationService) *SurveyHandler {
+	return &SurveyHandler{conf: conf, db: db, service: service.NewSurveyService(conf, repository.NewSurveyRepository(db, logger), logger, notificationService), logger: logger}
 }
 
 func (h *SurveyHandler) CreateSurvey(c echo.Context) error {

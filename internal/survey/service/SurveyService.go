@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
+	notification "github.com/G9QBootcamp/qoli-survey/internal/notification/service"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/repository"
@@ -29,13 +30,14 @@ type ISurveyService interface {
 	GetSurveyQuestionsInOrder(c context.Context, surveyId uint) (questionsAnswerMap dto.QuestionsAnswerMap, err error)
 }
 type SurveyService struct {
-	conf   *config.Config
-	repo   repository.ISurveyRepository
-	logger logging.Logger
+	conf                *config.Config
+	repo                repository.ISurveyRepository
+	logger              logging.Logger
+	notificationService notification.INotificationService
 }
 
-func NewSurveyService(conf *config.Config, repo repository.ISurveyRepository, logger logging.Logger) *SurveyService {
-	return &SurveyService{conf: conf, repo: repo, logger: logger}
+func NewSurveyService(conf *config.Config, repo repository.ISurveyRepository, logger logging.Logger, notificationService notification.INotificationService) *SurveyService {
+	return &SurveyService{conf: conf, repo: repo, logger: logger, notificationService: notificationService}
 }
 
 func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequest) (*dto.SurveyResponse, error) {
@@ -128,7 +130,18 @@ func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequ
 }
 
 func (s *SurveyService) DeleteSurvey(c context.Context, id uint) error {
-	return s.repo.DeleteSurvey(c, id)
+
+	survey, err := s.repo.GetSurveyByID(c, id)
+	if err != nil {
+		return err
+	}
+	err = s.repo.DeleteSurvey(c, survey.ID)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.notificationService.Notify(c, survey.OwnerID, "your survey with name: "+survey.Title+" removed")
+	return err
 }
 
 func (s *SurveyService) GetSurveys(c context.Context, req dto.SurveysGetRequest) (response []*dto.SurveyResponse, err error) {
