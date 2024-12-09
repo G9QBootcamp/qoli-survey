@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
@@ -106,4 +107,148 @@ func (h *UserHandler) RestrictUserSurveys(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Max surveys updated successfully"})
+}
+
+func (h *UserHandler) Deposit(c echo.Context) error {
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+	}
+	var req struct {
+		Amount float64 `json:"amount" validate:"required,min=0"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	err := h.service.Deposit(c.Request().Context(), userID, req.Amount)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "deposit successful"})
+}
+
+func (h *UserHandler) Withdraw(c echo.Context) error {
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+	}
+	var req struct {
+		Amount float64 `json:"amount" validate:"required,min=0"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	err := h.service.Withdraw(c.Request().Context(), userID, req.Amount)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "withdraw successful"})
+}
+
+func (h *UserHandler) Transfer(c echo.Context) error {
+	senderID, ok := c.Get("userID").(uint)
+	if !ok || senderID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+	}
+	receiverID, _ := strconv.Atoi(c.Param("user_id"))
+	var req struct {
+		Amount float64 `json:"amount" validate:"required,min=0"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	err := h.service.Transfer(c.Request().Context(), senderID, uint(receiverID), req.Amount)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "transfer successful"})
+}
+
+func (h *UserHandler) BuyVote(c echo.Context) error {
+	buyerID, ok := c.Get("userID").(uint)
+	if !ok || buyerID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+	}
+
+	var req struct {
+		Amount float64 `json:"amount" validate:"required,min=0"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	sellerID, err1 := strconv.Atoi(c.Param("seller_id"))
+	voteID, err2 := strconv.Atoi(c.Param("vote_id"))
+
+	if err1 != nil || err2 != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request parameters"})
+	}
+
+	voterId, err := h.service.GetVoterID(c.Request().Context(), uint(voteID))
+	if err != nil || voterId != uint(sellerID) {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user is not voter of the vote"})
+	}
+
+	err = h.service.BuyVote(c.Request().Context(), buyerID, uint(sellerID), uint(voteID), req.Amount)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "vote purchase successful"})
+}
+
+func (h *UserHandler) SellVote(c echo.Context) error {
+	sellerID, ok := c.Get("userID").(uint)
+	if !ok || sellerID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+	}
+
+	var req struct {
+		Amount float64 `json:"amount" validate:"required,min=0"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	buyerID, err1 := strconv.Atoi(c.Param("buyer_id"))
+	voteID, err2 := strconv.Atoi(c.Param("vote_id"))
+
+	if err1 != nil || err2 != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request parameters"})
+	}
+
+	voterId, err := h.service.GetVoterID(c.Request().Context(), uint(voteID))
+	if err != nil || voterId != sellerID {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user is not voter of the vote"})
+	}
+
+	err = h.service.SellVote(c.Request().Context(), sellerID, uint(buyerID), uint(voteID), req.Amount)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to sell votes"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "vote sold successfully"})
+}
+
+func (h *UserHandler) GetBalance(c echo.Context) error {
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+	}
+
+	balance, err := h.service.GetBalance(c.Request().Context(), userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]float64{"balance": balance})
 }
