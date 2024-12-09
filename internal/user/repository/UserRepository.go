@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
+	surveyModels "github.com/G9QBootcamp/qoli-survey/internal/survey/models"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
@@ -27,6 +28,8 @@ type IUserRepository interface {
 	Deposit(ctx context.Context, userID uint, amount float64) error
 	Withdraw(ctx context.Context, userID uint, amount float64) error
 	Transfer(ctx context.Context, senderID, receiverID uint, amount float64) error
+	GetVoterID(ctx context.Context, voteID uint) (uint, error)
+	UpdateVoteVoter(ctx context.Context, voterID uint, voteID uint) error
 }
 
 type UserRepository struct {
@@ -173,7 +176,7 @@ func (r *UserRepository) GetBalance(ctx context.Context, userID uint) (float64, 
 	err := r.db.GetDb().WithContext(ctx).
 		Model(&models.Transaction{}).
 		Select("SUM(amount) as total").
-		Where("buyer_id = ? OR seller_id = ?", userID, userID).
+		Where("user_id = ?", userID).
 		Scan(&result).Error
 	if err != nil {
 		return 0, err
@@ -204,6 +207,13 @@ func (r *UserRepository) Deposit(ctx context.Context, userID uint, amount float6
 		return err
 	}
 
+	transaction := &models.Transaction{
+		UserID: userID,
+		Amount: amount,
+		Reason: "deposit",
+	}
+	r.CreateTransaction(ctx, transaction)
+
 	return nil
 }
 
@@ -212,7 +222,6 @@ func (r *UserRepository) Withdraw(ctx context.Context, userID uint, amount float
 	if amount <= 0 {
 		return errors.New("amount must be positive")
 	}
-
 	user, err := r.GetUserByID(ctx, userID)
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Update, "withdraw failed to find user", map[logging.ExtraKey]interface{}{
@@ -234,11 +243,21 @@ func (r *UserRepository) Withdraw(ctx context.Context, userID uint, amount float
 		return err
 	}
 
+	transaction := &models.Transaction{
+		UserID: userID,
+		Amount: -amount,
+		Reason: "withdraw",
+	}
+	r.CreateTransaction(ctx, transaction)
+
 	return nil
 }
 
 // Transfer - transfer money from sender to receiver
 func (r *UserRepository) Transfer(ctx context.Context, senderID, receiverID uint, amount float64) error {
+	if amount <= 0 {
+		return errors.New("amount must be positive")
+	}
 	if senderID == receiverID {
 		return errors.New("cannot transfer to the same user")
 	}
@@ -260,11 +279,9 @@ func (r *UserRepository) Transfer(ctx context.Context, senderID, receiverID uint
 		return errors.New("insufficient balance")
 	}
 
-	// Adjust balances
 	sender.WalletBalance -= amount
 	receiver.WalletBalance += amount
 
-	// Update database records for both sender and receiver
 	if err := r.db.GetDb().WithContext(ctx).Save(sender).Error; err != nil {
 		return err
 	}
@@ -272,11 +289,40 @@ func (r *UserRepository) Transfer(ctx context.Context, senderID, receiverID uint
 		return err
 	}
 
-	// Record the transaction
 	transaction := &models.Transaction{
-		BuyerID:  receiverID,
-		SellerID: senderID,
-		Amount:   amount,
+		UserID: senderID,
+		Amount: -amount,
+		Reason: "Transfer",
 	}
-	return r.CreateTransaction(ctx, transaction)
+	r.CreateTransaction(ctx, transaction)
+
+	transaction = &models.Transaction{
+		UserID: receiverID,
+		Amount: amount,
+		Reason: "Transfer",
+	}
+	r.CreateTransaction(ctx, transaction)
+
+	return nil
+}
+
+func (r *UserRepository) GetVoterID(ctx context.Context, voteID uint) (uint, error) {
+	var vote surveyModels.Vote
+	err := r.db.GetDb().WithContext(ctx).First(&vote, voteID).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return 0, err
+	}
+
+	return vote.VoterID, err
+}
+
+func (r *UserRepository) UpdateVoteVoter(ctx context.Context, voterID uint, voteID uint) error {
+	err := r.db.GetDb().WithContext(ctx).Model(&surveyModels.Vote{}).Where("id = ?", voteID).Update("voter_id", voterID).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Update, "failed to update max surveys", map[logging.ExtraKey]interface{}{
+			logging.ErrorMessage: err.Error(),
+		})
+	}
+	return err
 }
