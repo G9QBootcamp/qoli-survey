@@ -18,7 +18,9 @@ import (
 
 type ISurveyService interface {
 	CreateSurvey(c context.Context, req dto.SurveyCreateRequest) (*dto.SurveyResponse, error)
+	UpdateSurvey(c context.Context, id uint, req dto.SurveyUpdateRequest) (*dto.SurveyResponse, error)
 	GetSurvey(c context.Context, id uint) (*dto.SurveyResponse, error)
+	GetVote(c context.Context, id uint) (*dto.GetVoteResponse, error)
 	GetSurveys(c context.Context, req dto.SurveysGetRequest) ([]*dto.SurveyResponse, error)
 	DeleteSurvey(c context.Context, id uint) error
 	CanUserParticipateToSurvey(c context.Context, userId uint, surveyId uint) (bool, error)
@@ -27,7 +29,14 @@ type ISurveyService interface {
 	CommitParticipation(c context.Context, participationId uint) error
 	CanUserVoteOnSurvey(c context.Context, userId uint, surveyId uint) (bool, error)
 	CommitVote(c context.Context, vote models.Vote) error
+	DeleteVote(c context.Context, id uint) error
 	GetSurveyQuestionsInOrder(c context.Context, surveyId uint) (questionsAnswerMap dto.QuestionsAnswerMap, err error)
+	GetSurveyVotes(c context.Context, surveyId uint) ([]dto.GetVoteResponse, error)
+
+	CreateOption(c context.Context, userId uint, surveyId uint, req dto.SurveyOptionCreateRequest) (*dto.SurveyOptionResponse, error)
+	UpdateOption(c context.Context, id uint, req dto.SurveyOptionCreateRequest) (*dto.SurveyOptionResponse, error)
+	DeleteOption(c context.Context, id uint) error
+	GetOptions(c context.Context, req dto.SurveyOptionsGetRequest) (response []*dto.SurveyOptionResponse, err error)
 }
 type SurveyService struct {
 	conf                *config.Config
@@ -38,6 +47,29 @@ type SurveyService struct {
 
 func NewSurveyService(conf *config.Config, repo repository.ISurveyRepository, logger logging.Logger, notificationService notification.INotificationService) *SurveyService {
 	return &SurveyService{conf: conf, repo: repo, logger: logger, notificationService: notificationService}
+}
+
+func (s *SurveyService) UpdateSurvey(c context.Context, id uint, req dto.SurveyUpdateRequest) (response *dto.SurveyResponse, err error) {
+	survey, err := s.repo.GetSurveyByID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	survey.Title = req.Title
+	survey.StartTime = req.StartTime
+	survey.EndTime = req.EndTime
+	survey.AllowReturn = req.AllowReturn
+	survey.ParticipationLimit = req.ParticipationLimit
+	survey.AnswerTimeLimit = req.AnswerTimeLimit
+	survey.IsSequential = req.IsSequential
+
+	err = s.repo.UpdateSurvey(c, survey)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, util.ConvertTypes(s.logger, survey, &response)
+
 }
 
 func (s *SurveyService) CreateSurvey(c context.Context, req dto.SurveyCreateRequest) (*dto.SurveyResponse, error) {
@@ -143,7 +175,24 @@ func (s *SurveyService) DeleteSurvey(c context.Context, id uint) error {
 	_, err = s.notificationService.Notify(c, survey.OwnerID, "your survey with name: "+survey.Title+" removed")
 	return err
 }
+func (s *SurveyService) DeleteVote(c context.Context, id uint) error {
 
+	vote, err := s.GetVote(c, id)
+
+	if err != nil {
+		return err
+	}
+	if vote == nil {
+		return errors.New("vote not found")
+	}
+
+	err = s.repo.DeleteVote(c, vote.ID)
+	if err != nil {
+		return err
+	}
+	_, err = s.notificationService.Notify(c, vote.VoterID, fmt.Sprintf("your vote with this answer removed: %s", vote.Answer))
+	return err
+}
 func (s *SurveyService) GetSurveys(c context.Context, req dto.SurveysGetRequest) (response []*dto.SurveyResponse, err error) {
 	limit := 10
 	offset := 0
@@ -190,6 +239,27 @@ func (s *SurveyService) GetSurvey(c context.Context, id uint) (*dto.SurveyRespon
 	return &sResponse, nil
 
 }
+func (s *SurveyService) GetVote(c context.Context, id uint) (*dto.GetVoteResponse, error) {
+	vote, err := s.repo.GetVoteByID(c, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if vote == nil {
+		return nil, nil
+	}
+	sResponse := dto.GetVoteResponse{}
+
+	err = util.ConvertTypes(s.logger, vote, &sResponse)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &sResponse, nil
+}
+
 func (s *SurveyService) CanUserParticipateToSurvey(c context.Context, userId uint, surveyId uint) (bool, error) {
 	userParticipationList, err := s.repo.GetUserParticipationList(c, userId, surveyId)
 	if err != nil {
@@ -217,6 +287,7 @@ func (s *SurveyService) CanUserParticipateToSurvey(c context.Context, userId uin
 			return false, errors.New("user participation in this survey has not ended")
 		}
 	}
+
 	return true, nil
 
 }
@@ -370,4 +441,60 @@ func (s *SurveyService) GetSurveyQuestionsInOrder(c context.Context, surveyId ui
 
 	return questionsAnswerMap, nil
 
+}
+
+func (s *SurveyService) CreateOption(c context.Context, userId uint, surveyId uint, req dto.SurveyOptionCreateRequest) (response *dto.SurveyOptionResponse, err error) {
+	option, err := s.repo.CreateOption(c, &models.SurveyOption{SurveyId: surveyId, Name: req.Name, Value: req.Value, UserId: userId})
+	if err != nil {
+		return nil, err
+	}
+	return response, util.ConvertTypes(s.logger, option, &response)
+
+}
+func (s *SurveyService) UpdateOption(c context.Context, id uint, req dto.SurveyOptionCreateRequest) (response *dto.SurveyOptionResponse, err error) {
+	option, err := s.repo.GetOptionByID(c, id)
+
+	if err != nil {
+		return nil, err
+	}
+	if option == nil {
+		return nil, nil
+	}
+	option.Name = req.Name
+	option.Value = req.Value
+
+	err = s.repo.UpdateOption(c, option)
+
+	if err != nil {
+		return nil, err
+	}
+	return response, util.ConvertTypes(s.logger, option, &response)
+
+}
+func (s *SurveyService) DeleteOption(c context.Context, id uint) error {
+	return s.repo.DeleteOption(c, id)
+}
+func (s *SurveyService) GetOptions(c context.Context, req dto.SurveyOptionsGetRequest) (response []*dto.SurveyOptionResponse, err error) {
+	filters := []*dto.RepositoryFilter{}
+	if req.SurveyId > 0 {
+		filters = append(filters, &dto.RepositoryFilter{Field: "survey_id", Operator: "=", Value: strconv.Itoa(int(req.SurveyId))})
+	}
+	if req.Name != "" {
+		filters = append(filters, &dto.RepositoryFilter{Field: "survey_id", Operator: "=", Value: req.Name})
+
+	}
+	options, err := s.repo.GetOptions(c, &dto.RepositoryRequest{Filters: filters})
+	if err != nil {
+		return []*dto.SurveyOptionResponse{}, err
+	}
+	return response, util.ConvertTypes(s.logger, options, &response)
+}
+
+func (s *SurveyService) GetSurveyVotes(c context.Context, surveyId uint) (response []dto.GetVoteResponse, err error) {
+	votes, err := s.repo.GetSurveyVotes(c, surveyId)
+	if err != nil {
+		return []dto.GetVoteResponse{}, err
+	}
+
+	return response, util.ConvertTypes(s.logger, votes, &response)
 }

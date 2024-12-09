@@ -31,11 +31,20 @@ func (r *SurveyRouter) RegisterRoutes() {
 	g := r.serverGroup.Group("/surveys")
 	g.POST("", r.handler.CreateSurvey)
 	g.DELETE("/:survey_id", r.handler.DeleteSurvey, middlewares.CheckPermission("edit_survey", r.db))
+	g.PATCH("/:survey_id", r.handler.UpdateSurvey, middlewares.CheckPermission("edit_survey", r.db))
 	g.GET("/:survey_id", r.handler.GetSurvey, middlewares.CheckPermission("view_survey", r.db))
 	g.GET("", r.handler.GetSurveys, middlewares.CheckPermission("view_survey", r.db))
-	g.GET("/:survey_id/start", r.handler.StartSurvey, middlewares.CheckPermission("vote", r.db))
+	g.GET("/:survey_id/start", r.handler.StartSurvey, middlewares.CheckPermission("vote", r.db), middlewares.CanUserVoteOnSurvey(r.db))
 	g.GET("/:survey_id/reports", r.reportHandler.GetSurveyReport, middlewares.CheckPermission("view_survey_reports", r.db))
 	g.POST("/reports-to-csv", r.reportHandler.GenerateAllSurveysReport)
+
+	g.DELETE("/:survey_id/votes/:vote_id", r.handler.DeleteVote, middlewares.CheckPermission("vote", r.db))
+	g.GET("/:survey_id/votes", r.handler.SurveyVotes, middlewares.CheckPermission("view_survey_results", r.db))
+
+	g.POST("/:survey_id/options", r.handler.CreateSurveyOption, middlewares.CheckPermission("edit_survey", r.db))
+	g.DELETE("/:survey_id/options/:option_id", r.handler.DeleteSurveyOption, middlewares.CheckPermission("edit_survey", r.db))
+	g.PATCH("/:survey_id/options/:option_id", r.handler.UpdateSurveyOption, middlewares.CheckPermission("edit_survey", r.db))
+	g.GET("/:survey_id/options", r.handler.GetSurveyOptions, middlewares.CheckPermission("view_survey", r.db))
 
 	questionRouter := NewQuestionRouter(r.conf, r.db, g, r.logger)
 	questionRouter.RegisterRoutes()

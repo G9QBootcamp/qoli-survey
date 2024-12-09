@@ -2,7 +2,7 @@ package models
 
 import (
 	"time"
-	
+
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"gorm.io/gorm"
 )
@@ -24,4 +24,5 @@ type Survey struct {
 	Questions          []Question              `gorm:"foreignKey:SurveyID;constraint:OnDelete:CASCADE;" json:"questions"`
 	UserSurveyRoles    []models.UserSurveyRole `gorm:"foreignKey:SurveyID;constraint:OnDelete:CASCADE;"`
 	VoteVisibilities   []models.VoteVisibility `gorm:"foreignKey:SurveyID;constraint:OnDelete:CASCADE;"`
+	Options            []SurveyOption          `gorm:"foreignKey:SurveyId;constraint:OnDelete:CASCADE;"`
 }
