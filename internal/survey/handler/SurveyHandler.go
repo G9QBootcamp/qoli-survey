@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
@@ -53,6 +54,18 @@ func (h *SurveyHandler) CreateSurvey(c echo.Context) error {
 	if err := c.Validate(&req); err != nil {
 		h.logger.Warn(logging.Validation, logging.Api, "validation error in create survey api", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
 		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	for _, question := range req.Questions {
+		seen := make(map[string]bool)
+		for _, choice := range question.Choices {
+			if seen[strings.ToLower(choice.Text)] {
+				h.logger.Info(logging.Internal, logging.Api, "validation error in create survey api", map[logging.ExtraKey]interface{}{logging.Service: "SurveyService"})
+
+				return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed: the request has same choices for a question"})
+			}
+			seen[strings.ToLower(choice.Text)] = true
+		}
 	}
 
 	req.OwnerID = userID

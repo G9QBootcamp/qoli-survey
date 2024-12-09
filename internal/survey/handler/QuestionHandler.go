@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
@@ -130,6 +131,16 @@ func (h *QuestionHandler) UpdateQuestion(c echo.Context) error {
 	if err := c.Validate(&req); err != nil {
 		h.logger.Warn(logging.Validation, logging.Api, "validation error in update question api", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
 		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	seen := make(map[string]bool)
+	for _, choice := range req.Choices {
+		if seen[strings.ToLower(choice.Text)] {
+			h.logger.Info(logging.Internal, logging.Api, "validation error in update question api", map[logging.ExtraKey]interface{}{logging.Service: "SurveyService"})
+
+			return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed: the request has same choices for a question"})
+		}
+		seen[strings.ToLower(choice.Text)] = true
 	}
 
 	question, err := h.service.UpdateQuestion(c.Request().Context(), uint(iQuestion_id), req)

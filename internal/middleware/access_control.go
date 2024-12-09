@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	surveyModels "github.com/G9QBootcamp/qoli-survey/internal/survey/models"
@@ -43,7 +44,8 @@ func CheckPermission(requiredPermission string, db db.DbService) echo.Middleware
 
 				var userSurveyRoles []userModels.UserSurveyRole
 				if err := db.GetDb().Preload("Role.Permissions").
-					Where("user_id = ? AND survey_id = ?", userID, surveyID).
+					Where("user_id = ? AND survey_id = ? AND (expires_at > ? OR expires_at IS NULL)",
+						userID, surveyID, time.Now()).
 					Find(&userSurveyRoles).Error; err != nil {
 					return echo.NewHTTPError(http.StatusForbidden, map[string]string{"error": "access denied for this survey"})
 				}
