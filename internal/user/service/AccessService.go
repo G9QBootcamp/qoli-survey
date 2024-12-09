@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	notification "github.com/G9QBootcamp/qoli-survey/internal/notification/service"
@@ -63,7 +64,7 @@ func (s *AccessService) SetRole(c context.Context, req dto.SurveyRoleAssignReque
 		RoleID:   createdRole.ID,
 	}
 	if req.TimeLimit != nil {
-		usr.TimeLimit = *req.TimeLimit
+		usr.ExpiresAt = time.Now().Add(time.Duration(*req.TimeLimit) * time.Minute)
 	}
 	createdUsr, err := s.repo.CreateUserSurveyRole(c, usr)
 	if err != nil {
@@ -79,7 +80,7 @@ func (s *AccessService) SetRole(c context.Context, req dto.SurveyRoleAssignReque
 		SurveyID:    createdUsr.SurveyID,
 		RoleID:      createdUsr.RoleID,
 		Permissions: createdRole.Permissions,
-		TimeLimit:   createdUsr.TimeLimit,
+		ExpiresAt:   createdUsr.ExpiresAt,
 	}, nil
 }
 
@@ -101,10 +102,16 @@ func (s *AccessService) GetUserRolesForSomeSurvey(c context.Context, userID uint
 			})
 		}
 
+		roleModel, err := s.repo.GetRoleByID(c, role.RoleID)
+		if err != nil {
+			return nil, err
+		}
+
 		response.Roles = append(response.Roles, dto.Role{
-			ID:          role.RoleID,
+			ID:          roleModel.ID,
+			Name:        roleModel.Name,
 			Permissions: permissionsDTO,
-			TimeLimit:   role.TimeLimit,
+			ExpiresAt:   role.ExpiresAt,
 		})
 	}
 	return &response, nil

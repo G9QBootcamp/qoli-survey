@@ -24,15 +24,15 @@ func NewAccessRouter(conf *config.Config, db db.DbService, serverGroup *echo.Gro
 
 func (r *AccessRouter) RegisterRoutes(db db.DbService) {
 	r.serverGroup.GET("/access/permissions", r.handler.GetAllPermissions)
-	r.serverGroup.POST("/access/survey/:survey_id/user/:user_id/assign-role",
+	r.serverGroup.POST("/access/surveys/:survey_id/user/:user_id/assign-role",
 		r.handler.SetRole,
 		middlewares.CheckPermission("assign_and_remove_survey_roles", db),
 	)
-	r.serverGroup.GET("/access/survey/:survey_id/user/:user_id/roles",
+	r.serverGroup.GET("/access/surveys/:survey_id/user/:user_id/roles",
 		r.handler.GetUserRolesForSomeSurvey,
 		middlewares.CheckPermission("assign_and_remove_survey_roles", db),
 	)
-	r.serverGroup.DELETE("/access/survey/:survey_id/user/:user_id/role/:role_id",
+	r.serverGroup.DELETE("/access/surveys/:survey_id/user/:user_id/role/:role_id",
 		r.handler.DeleteUserSurveyRole,
 		middlewares.CheckPermission("assign_and_remove_survey_roles", db),
 	)
