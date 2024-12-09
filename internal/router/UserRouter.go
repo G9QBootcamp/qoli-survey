@@ -30,7 +30,8 @@ func (r *UserRouter) RegisterRoutes(db db.DbService) {
 	g.PATCH("/profile", r.handler.UpdateUserProfile)
 	g.GET("/profile", r.handler.GetProfile)
 
-	g.POST("/transaction", r.handler.ProcessTransaction)
-	g.GET("/balance/:user_id", r.handler.GetBalance)
+	g.POST("/wallet/deposit", r.handler.Deposit)
+	g.POST("/wallet/withdraw", r.handler.Withdraw)
+	g.POST("/transaction/:user_id", r.handler.Transfer)
 
 }

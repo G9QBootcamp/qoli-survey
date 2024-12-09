@@ -1,12 +1,10 @@
 package models
 
-import "time"
+import "gorm.io/gorm"
 
 type Transaction struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	BuyerID   uint      `json:"buyer_id"`
-	SellerID  uint      `json:"seller_id"`
-	VoteCount int       `json:"vote_count"`
-	Amount    float64   `json:"amount"`
-	CreatedAt time.Time `json:"created_at"`
+	gorm.Model
+	BuyerID  uint    `gorm:"not null"`
+	SellerID uint    `gorm:"not null"`
+	Amount   float64 `gorm:"not null"`
 }
