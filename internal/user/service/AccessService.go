@@ -18,6 +18,10 @@ type IAccessService interface {
 	GetUserRolesForSomeSurvey(c context.Context, userID uint, surveyID uint) (*dto.GetUserRolesForSomeSurveyResponse, error)
 	GetAllPermissions(c context.Context) ([]models.Permission, error)
 	DeleteUserSurveyRole(c context.Context, surveyID uint, userID uint, roleID uint) error
+	CreateVoteVisibility(c context.Context, request dto.VoteVisibilityCreateRequest) (dto.VoteVisibilityResponse, error)
+	GetVoteVisibilityById(ctx context.Context, id uint) (dto.VoteVisibilityResponse, error)
+	GetVoteVisibilityBySurveyId(ctx context.Context, surveyId uint) ([]dto.VoteVisibilityResponse, error)
+	DeleteVoteVisibilityById(ctx context.Context, id uint) error
 }
 type AccessService struct {
 	conf                *config.Config
@@ -121,4 +125,47 @@ func (s *AccessService) GetAllPermissions(c context.Context) ([]models.Permissio
 }
 func (s *AccessService) DeleteUserSurveyRole(c context.Context, surveyID uint, userID uint, roleID uint) error {
 	return s.repo.DeleteUserSurveyRole(c, surveyID, userID, roleID)
+}
+func (s *AccessService) CreateVoteVisibility(c context.Context, req dto.VoteVisibilityCreateRequest) (dto.VoteVisibilityResponse, error) {
+	vv, err := s.repo.CreateVoteVisibility(c, req)
+	if err != nil {
+		return dto.VoteVisibilityResponse{}, err
+	}
+	return dto.VoteVisibilityResponse{
+		ID:           vv.ID,
+		SurveyID:     vv.SurveyID,
+		ViewerID:     vv.ViewerID,
+		RespondentID: vv.RespondentID,
+	}, err
+}
+func (s *AccessService) GetVoteVisibilityById(c context.Context, id uint) (dto.VoteVisibilityResponse, error) {
+	res, err := s.repo.GetVoteVisibilityById(c, id)
+	if err != nil {
+		return dto.VoteVisibilityResponse{}, err
+	}
+	return dto.VoteVisibilityResponse{
+		ID:           res.ID,
+		SurveyID:     res.SurveyID,
+		ViewerID:     res.ViewerID,
+		RespondentID: res.RespondentID,
+	}, err
+}
+func (s *AccessService) GetVoteVisibilityBySurveyId(ctx context.Context, surveyId uint) ([]dto.VoteVisibilityResponse, error) {
+	res, err := s.repo.GetVoteVisibilityBySurveyId(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+	var response []dto.VoteVisibilityResponse
+	for _, vv := range res {
+		response = append(response, dto.VoteVisibilityResponse{
+			ID:           vv.ID,
+			SurveyID:     vv.SurveyID,
+			ViewerID:     vv.ViewerID,
+			RespondentID: vv.RespondentID,
+		})
+	}
+	return response, nil
+}
+func (s *AccessService) DeleteVoteVisibilityById(c context.Context, id uint) error {
+	return s.repo.DeleteVoteVisibilityById(c, id)
 }
