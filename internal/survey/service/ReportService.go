@@ -1,12 +1,12 @@
 package service
 
 import (
-
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/repository"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"golang.org/x/net/context"
+	"strconv"
 )
 
 type IReportService interface {
@@ -14,6 +14,8 @@ type IReportService interface {
 	GetCorrectAnswerPercentage(ctx context.Context, surveyId uint) ([]dto.CorrectAnswerPercentageToShow, error)
 	SuddenlyFinishedParticipationPercentage(ctx context.Context, surveyId uint) (float64, error)
 	GetChoicesByPercentage(ctx context.Context, surveyId uint) ([]dto.QuestionReport, error)
+
+	GetReportAggregateService(ctx context.Context, surveyId uint) (dto.ReportResponse, error)
 }
 type ReportService struct {
 	conf   *config.Config
@@ -143,4 +145,36 @@ func (s *ReportService) GetChoicesByPercentage(ctx context.Context, surveyId uin
 		}
 	}
 	return res, nil
+}
+func (s *ReportService) GetReportAggregateService(ctx context.Context, surveyId uint) (dto.ReportResponse, error) {
+	var reportResponse dto.ReportResponse
+
+	participationPercentage, err := s.GetParticipationPercentage(ctx, surveyId)
+	if err != nil {
+		s.logger.Error(logging.Internal, "", "Error getting participation percentage", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return reportResponse, err
+	}
+	reportResponse.SurveyParticipation = strconv.Itoa(int(participationPercentage)) + "%"
+
+	correctAnswerPercentage, err := s.GetCorrectAnswerPercentage(ctx, surveyId)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.Api, "Error getting correct answer percentage", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return reportResponse, err
+	}
+	reportResponse.CorrectAnswers = correctAnswerPercentage
+
+	suddenlyFinishedPercentage, err := s.SuddenlyFinishedParticipationPercentage(ctx, surveyId)
+	if err != nil {
+		s.logger.Error(logging.Internal, logging.Api, "Error getting suddenly finished participation percentage", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return reportResponse, err
+	}
+	reportResponse.SuddenlyFinishedParticipation = strconv.FormatFloat(suddenlyFinishedPercentage, 'f', 2, 64) + "%"
+
+	choicesPercentage, err := s.GetChoicesByPercentage(ctx, surveyId)
+	if err != nil {
+		s.logger.Error(logging.Internal, "", "Error getting choices percentages", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return reportResponse, err
+	}
+	reportResponse.ChoicesPercentage = choicesPercentage
+	return reportResponse, nil
 }
