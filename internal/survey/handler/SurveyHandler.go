@@ -653,8 +653,8 @@ func (h *SurveyHandler) SurveyVotes(c echo.Context) error {
 			return c.JSON(http.StatusForbidden, map[string]string{"message": "results of this survey is invisible"})
 		}
 
-		if v.Name == "votes_visibility" && v.Value == "admin" && role != "SuperAdmin" {
-			return c.JSON(http.StatusForbidden, map[string]string{"message": "results of this survey is invisible"})
+		if v.Name == "votes_visibility" && v.Value == "admin" && role != "SuperAdmin" && survey.UserId != userID {
+			return c.JSON(http.StatusForbidden, map[string]string{"message": "results of this survey is visible for admin and owner os survey"})
 		}
 
 	}

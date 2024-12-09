@@ -68,6 +68,7 @@ type Condition struct {
 
 type SurveyResponse struct {
 	SurveyID           uint                   `json:"survey_id"`
+	UserId             uint                   `json:"user_id"`
 	Title              string                 `json:"title"`
 	StartTime          string                 `json:"start_time"`
 	EndTime            string                 `json:"end_time"`
