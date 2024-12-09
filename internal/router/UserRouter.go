@@ -22,7 +22,7 @@ func NewUserRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group
 }
 
 func (r *UserRouter) RegisterRoutes(db db.DbService) {
-	r.serverGroup.POST("/restrict/user/:user_id",
+	r.serverGroup.POST("/restrict/users/:user_id",
 		r.handler.RestrictUserSurveys,
 		middlewares.CheckPermission("restrict_user", db))
 	g := r.serverGroup.Group("/users")
