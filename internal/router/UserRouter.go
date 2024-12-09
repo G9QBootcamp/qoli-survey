@@ -33,5 +33,7 @@ func (r *UserRouter) RegisterRoutes(db db.DbService) {
 	g.POST("/wallet/deposit", r.handler.Deposit)
 	g.POST("/wallet/withdraw", r.handler.Withdraw)
 	g.POST("/transaction/:user_id", r.handler.Transfer)
+	g.POST("/vote/buy/:seller_id", r.handler.BuyVote)
+	g.POST("/vote/sell/:buyer_id", r.handler.SellVote)
 
 }

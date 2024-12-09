@@ -145,3 +145,43 @@ func (h *UserHandler) Transfer(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "transfer successful"})
 }
+
+func (h *UserHandler) BuyVote(c echo.Context) error {
+	buyerID := c.Get("user_id").(uint)
+	sellerID, _ := strconv.Atoi(c.Param("seller_id"))
+	amount, _ := strconv.ParseFloat(c.FormValue("amount"), 64)
+
+	err := h.service.BuyVote(c.Request().Context(), buyerID, uint(sellerID), amount)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "vote purchase successful"})
+}
+
+func (h *UserHandler) SellVote(c echo.Context) error {
+	sellerID := c.Get("user_id").(uint)
+	buyerID, _ := strconv.Atoi(c.Param("buyer_id"))
+	amount, _ := strconv.ParseFloat(c.FormValue("amount"), 64)
+
+	err := h.service.SellVote(c.Request().Context(), sellerID, uint(buyerID), amount)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "vote sold successfully"})
+}
+
+func (h *UserHandler) GetBalance(c echo.Context) error {
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+	}
+
+	balance, err := h.service.GetBalance(c.Request().Context(), userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]float64{"balance": balance})
+}

@@ -21,11 +21,12 @@ type IUserService interface {
 	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
 	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 	GetUser(c context.Context, id uint) (*dto.UserResponse, error)
-	GetBalance(ctx context.Context, userID uint) (float64, error)
-	ProcessTransaction(ctx context.Context, buyerID, sellerID uint, amount float64, voteCount int) error
 	Deposit(ctx context.Context, userID uint, amount float64) error
 	Transfer(ctx context.Context, senderID, receiverID uint, amount float64) error
 	Withdraw(ctx context.Context, userID uint, amount float64) error
+	BuyVote(ctx context.Context, buyerID, sellerID uint, amount float64) error
+	SellVote(ctx context.Context, sellerID, buyerID uint, amount float64) error
+	GetBalance(ctx context.Context, userID uint) (float64, error)
 }
 type UserService struct {
 	conf   *config.Config
@@ -239,4 +240,45 @@ func (s *UserService) Transfer(ctx context.Context, senderID, receiverID uint, a
 		Amount:   amount,
 	}
 	return s.repo.CreateTransaction(ctx, transaction)
+}
+
+func (s *UserService) BuyVote(ctx context.Context, buyerID, sellerID uint, amount float64) error {
+	return s.SellVote(ctx, sellerID, buyerID, amount)
+}
+
+func (s *UserService) SellVote(ctx context.Context, sellerID, buyerID uint, amount float64) error {
+	if amount <= 0 {
+		return errors.New("amount must be positive")
+	}
+
+	seller, err := s.repo.GetUserByID(ctx, sellerID)
+	if err != nil {
+		return err
+	}
+
+	buyer, err := s.repo.GetUserByID(ctx, buyerID)
+	if err != nil {
+		return err
+	}
+
+	if seller.WalletBalance < amount {
+		return errors.New("insufficient balance")
+	}
+
+	seller.WalletBalance -= amount
+	buyer.WalletBalance += amount
+
+	_, err = s.repo.UpdateUser(ctx, seller)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.repo.UpdateUser(ctx, buyer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+func (s *UserService) GetBalance(ctx context.Context, userID uint) (float64, error) {
+	return s.repo.GetBalance(ctx, userID)
 }
