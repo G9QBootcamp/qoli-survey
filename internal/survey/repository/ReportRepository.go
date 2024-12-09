@@ -26,6 +26,8 @@ type IReportRepository interface {
 	GetTotalParticipants(ctx context.Context, surveyId uint) ([]userModels.User, error)
 	GetAverageResponseTime(ctx context.Context, surveyId uint) (float64, error)
 	GetResponseDispersionByHour(ctx context.Context, surveyId uint) (map[int]int, error)
+	GetAllSurveys(ctx context.Context) ([]models.Survey, error)
+	GetAccessibleSurveys(ctx context.Context, userID uint, permission string) ([]models.Survey, error)
 }
 
 type ReportRepository struct {
@@ -169,4 +171,110 @@ func (r *ReportRepository) GetGivenAnswerCountByQuestionID(ctx context.Context, 
 		return 0, err
 	}
 	return count, nil
+}
+
+func (r *ReportRepository) GetParticipationCount(ctx context.Context, surveyId uint, userId uint) (int64, error) {
+	var count int64
+	err := r.db.GetDb().WithContext(ctx).Table("user_survey_participations").
+		Where("survey_id = ? AND user_id = ?", surveyId, userId).
+		Count(&count).
+		Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		r.logger.Error(logging.Database, logging.Select, "GetParticipationCount error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *ReportRepository) GetTotalParticipants(ctx context.Context, surveyId uint) ([]userModels.User, error) {
+	var users []userModels.User
+
+	err := r.db.GetDb().WithContext(ctx).Table("user_survey_participations").
+		Select("DISTINCT users.*").
+		Joins("JOIN users ON user_survey_participations.user_id = users.id").
+		Where("user_survey_participations.survey_id = ?", surveyId).
+		Scan(&users).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		r.logger.Error(logging.Database, logging.Select, "GetParticipationCount error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return nil, err
+	}
+	return users, nil
+}
+
+func (r *ReportRepository) GetAverageResponseTime(ctx context.Context, surveyId uint) (float64, error) {
+	var avgResponseTimeInMinutes float64
+	var count int64
+
+	err := r.db.GetDb().WithContext(ctx).Table("user_survey_participations").
+		Where("survey_id = ?", surveyId).
+		Count(&count).Error
+
+	if count > 0 {
+		err = r.db.GetDb().WithContext(ctx).Table("user_survey_participations").
+			Select("AVG(EXTRACT(EPOCH FROM COALESCE(committed_at, end_at) - start_at) / 60.0) AS avg_response_time_minutes").
+			Where("survey_id = ?", surveyId).
+			Scan(&avgResponseTimeInMinutes).Error
+	} else {
+		avgResponseTimeInMinutes = 0
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		r.logger.Error(logging.Database, logging.Select, "GetAverageResponseTime error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return 0, err
+	}
+
+	return avgResponseTimeInMinutes, nil
+}
+
+func (r *ReportRepository) GetResponseDispersionByHour(ctx context.Context, surveyId uint) (map[int]int, error) {
+	var results []struct {
+		Hour  int
+		Count int
+	}
+	dispersionData := make(map[int]int)
+
+	err := r.db.GetDb().Table("user_survey_participations").
+		Select("EXTRACT(HOUR FROM start_at) as hour, COUNT(*) as count").
+		Where("survey_id = ?", surveyId).
+		Group("EXTRACT(HOUR FROM start_at)").
+		Scan(&results).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		r.logger.Error(logging.Database, logging.Select, "GetResponseDispersionByHour error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return nil, err
+	}
+
+	for _, res := range results {
+		dispersionData[res.Hour] = res.Count
+	}
+
+	return dispersionData, nil
+}
+
+func (r *ReportRepository) GetAllSurveys(ctx context.Context) ([]models.Survey, error) {
+	var surveys []models.Survey
+	err := r.db.GetDb().WithContext(ctx).Find(&surveys).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		r.logger.Error(logging.Database, logging.Select, "GetAllSurveys error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return nil, err
+	}
+	return surveys, nil
+}
+
+func (r *ReportRepository) GetAccessibleSurveys(ctx context.Context, userID uint, permission string) ([]models.Survey, error) {
+	var surveys []models.Survey
+	err := r.db.GetDb().Joins("JOIN user_survey_roles usr ON usr.survey_id = surveys.id").
+		Joins("JOIN roles r ON r.id = usr.role_id").
+		Joins("JOIN role_permissions rp ON rp.role_id = r.id").
+		Joins("JOIN permissions p ON p.id = rp.permission_id").
+		Where("usr.user_id = ? AND p.action = ?", userID, permission).
+		Find(&surveys).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		r.logger.Error(logging.Database, logging.Select, "GetAccessibleSurveys error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return nil, err
+	}
+	return surveys, nil
 }

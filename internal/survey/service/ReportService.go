@@ -20,6 +20,9 @@ type IReportService interface {
 	GetMultipleParticipationCount(ctx context.Context, surveyId uint) ([]dto.ParticipationReport, error)
 	GetAverageResponseTime(ctx context.Context, surveyId uint) (float64, error)
 	GetResponseDispersionByHour(ctx context.Context, surveyId uint) ([]dto.HourDispersionDTO, error)
+	GetSurveyReport(ctx context.Context, surveyId uint) (*dto.ReportResponse, error)
+	GetAllSurveys(ctx context.Context) ([]models.Survey, error)
+	GetAccessibleSurveys(ctx context.Context, userID uint, permission string) ([]models.Survey, error)
 }
 type ReportService struct {
 	conf   *config.Config
@@ -187,4 +190,59 @@ func (s *ReportService) GetResponseDispersionByHour(ctx context.Context, surveyI
 	}
 
 	return result, nil
+}
+
+func (s *ReportService) GetSurveyReport(ctx context.Context, surveyId uint) (*dto.ReportResponse, error) {
+	participation, err := s.GetTotalParticipationPercentage(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	correctAnswers, err := s.GetCorrectAnswerPercentage(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	multipleParticipation, err := s.GetMultipleParticipationCount(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	suddenlyFinished, err := s.SuddenlyFinishedParticipationPercentage(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	choicesPercentage, err := s.GetChoicesByPercentage(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	averageResponseTime, err := s.GetAverageResponseTime(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	dispersionByHour, err := s.GetResponseDispersionByHour(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.ReportResponse{
+		SurveyParticipation:           fmt.Sprintf("%d%%", participation),
+		CorrectAnswers:                correctAnswers,
+		MultipleParticipationCount:    multipleParticipation,
+		SuddenlyFinishedParticipation: fmt.Sprintf("%.2f%%", suddenlyFinished),
+		ChoicesPercentage:             choicesPercentage,
+		AverageResponseTime:           fmt.Sprintf("%.2f", averageResponseTime),
+		DispersionResponseByHour:      dispersionByHour,
+	}, nil
+}
+
+func (s *ReportService) GetAllSurveys(ctx context.Context) ([]models.Survey, error) {
+	return s.repo.GetAllSurveys(ctx)
+}
+
+func (s *ReportService) GetAccessibleSurveys(ctx context.Context, userID uint, permission string) ([]models.Survey, error) {
+	return s.repo.GetAccessibleSurveys(ctx, userID, permission)
 }
