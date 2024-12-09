@@ -49,7 +49,7 @@ func (s *AccessService) SetRole(c context.Context, req dto.SurveyRoleAssignReque
 		}
 	}
 	role := models.Role{
-		Name:        "",
+		Name:        req.RoleName,
 		Permissions: prms,
 	}
 	createdRole, err := s.repo.CreateRole(c, role)

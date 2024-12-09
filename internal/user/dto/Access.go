@@ -5,6 +5,7 @@ import "github.com/G9QBootcamp/qoli-survey/internal/user/models"
 type SurveyRoleAssignRequest struct {
 	SurveyID      uint   `json:"survey_id"`
 	UserID        uint   `json:"user_id"`
+	RoleName      string `json:"role_name"`
 	PermissionIds []uint `json:"permission_ids" validate:"required"`
 	TimeLimit     *int   `json:"time_limit,omitempty" validate:"omitempty,min=0"`
 }
