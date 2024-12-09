@@ -33,6 +33,16 @@ type ISurveyRepository interface {
 	DeleteQuestionChoices(ctx context.Context, questionId uint) error
 	GetQuestions(ctx context.Context, req *dto.RepositoryRequest) ([]*models.Question, error)
 	GetSurveys(ctx context.Context, req *dto.RepositoryRequest) (questions []*models.Survey, err error)
+	DeleteVote(c context.Context, id uint) error
+	GetVoteByID(ctx context.Context, id uint) (*models.Vote, error)
+	UpdateSurvey(ctx context.Context, survey *models.Survey) error
+	GetSurveyVotes(ctx context.Context, id uint) ([]*models.Vote, error)
+
+	CreateOption(ctx context.Context, option *models.SurveyOption) (*models.SurveyOption, error)
+	UpdateOption(ctx context.Context, option *models.SurveyOption) error
+	DeleteOption(c context.Context, id uint) error
+	GetOptionByID(ctx context.Context, id uint) (*models.SurveyOption, error)
+	GetOptions(ctx context.Context, req *dto.RepositoryRequest) (options []*models.SurveyOption, err error)
 }
 
 type SurveyRepository struct {
@@ -47,11 +57,21 @@ func NewSurveyRepository(db db.DbService, logger logging.Logger) *SurveyReposito
 func (r *SurveyRepository) GetSurveyByID(ctx context.Context, surveyId uint) (*models.Survey, error) {
 	var survey models.Survey
 
-	err := r.db.GetDb().WithContext(ctx).First(&survey, surveyId).Error
+	err := r.db.GetDb().WithContext(ctx).Preload("Options").First(&survey, surveyId).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	return &survey, err
+}
+
+func (r *SurveyRepository) GetVoteByID(ctx context.Context, id uint) (*models.Vote, error) {
+	var vote models.Vote
+
+	err := r.db.GetDb().WithContext(ctx).First(&vote, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &vote, err
 }
 func (r *SurveyRepository) CreateSurvey(ctx context.Context, survey *models.Survey) error {
 	err := r.db.GetDb().WithContext(ctx).Create(&survey).Error
@@ -92,6 +112,13 @@ func (r *SurveyRepository) UpdateChoice(ctx context.Context, choice *models.Choi
 	return err
 }
 
+func (r *SurveyRepository) UpdateSurvey(ctx context.Context, survey *models.Survey) error {
+	err := r.db.GetDb().WithContext(ctx).Save(survey).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Update, "Get survey error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return err
+}
 func (r *SurveyRepository) GetChoiceByTextAndQuestion(ctx context.Context, text string, questionID uint) (*models.Choice, error) {
 	var choice models.Choice
 	err := r.db.GetDb().WithContext(ctx).Where("text = ? AND question_id = ?", text, questionID).First(&choice).Error
@@ -196,6 +223,10 @@ func (q *SurveyRepository) DeleteSurvey(c context.Context, id uint) error {
 	return q.db.GetDb().WithContext(c).Where("ID = ?", id).Delete(&models.Survey{}).Error
 
 }
+func (q *SurveyRepository) DeleteVote(c context.Context, id uint) error {
+	return q.db.GetDb().WithContext(c).Where("ID = ?", id).Delete(&models.Vote{}).Error
+
+}
 
 func (r *SurveyRepository) GetQuestionByID(ctx context.Context, id uint) (*models.Question, error) {
 	var question models.Question
@@ -210,4 +241,45 @@ func (r *SurveyRepository) GetQuestionByID(ctx context.Context, id uint) (*model
 func (r *SurveyRepository) DeleteQuestionChoices(c context.Context, questionId uint) error {
 	return r.db.GetDb().WithContext(c).Where("question_id = ?", questionId).Delete(&models.Choice{}).Error
 
+}
+
+func (r *SurveyRepository) CreateOption(ctx context.Context, option *models.SurveyOption) (*models.SurveyOption, error) {
+	err := r.db.GetDb().WithContext(ctx).Create(&option).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Insert, "create choice UserSurveyParticipation in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return option, err
+}
+func (r *SurveyRepository) UpdateOption(ctx context.Context, option *models.SurveyOption) error {
+	err := r.db.GetDb().WithContext(ctx).Save(option).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Update, "update vote  error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return err
+}
+func (r *SurveyRepository) DeleteOption(c context.Context, id uint) error {
+	return r.db.GetDb().WithContext(c).Where("ID = ?", id).Delete(&models.SurveyOption{}).Error
+
+}
+func (r *SurveyRepository) GetOptionByID(ctx context.Context, id uint) (option *models.SurveyOption, err error) {
+
+	err = r.db.GetDb().WithContext(ctx).First(&option, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return option, err
+
+}
+func (r *SurveyRepository) GetOptions(ctx context.Context, req *dto.RepositoryRequest) (options []*models.SurveyOption, err error) {
+	return GetRecords[*models.SurveyOption](r.db.GetDb(), req)
+
+}
+
+func (r *SurveyRepository) GetSurveyVotes(ctx context.Context, id uint) ([]*models.Vote, error) {
+	var votes []*models.Vote
+	err := r.db.GetDb().Preload("Voter").
+		Preload("Question.Survey").
+		Where("question_id IN (SELECT id FROM questions WHERE survey_id = ?)", id).
+		Find(&votes).Error
+	return votes, err
 }

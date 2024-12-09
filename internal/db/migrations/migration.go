@@ -21,6 +21,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&surveyModels.Vote{},
 		&surveyModels.UserSurveyParticipation{},
 		&notificationModels.Notification{},
+		&surveyModels.SurveyOption{},
 		&userModels.Transaction{},
 	)
 }

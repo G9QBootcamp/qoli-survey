@@ -2,7 +2,7 @@ package models
 
 import (
 	"time"
-	
+
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"gorm.io/gorm"
 )
@@ -12,7 +12,7 @@ type Survey struct {
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 	DeletedAt          gorm.DeletedAt          `gorm:"index"`
-	OwnerID            uint                    `gorm:"not null"`
+	OwnerID            uint                    `gorm:"not null" json:"user_id"`
 	Title              string                  `gorm:"not null" json:"title"`
 	StartTime          time.Time               `gorm:"not null" json:"start_time"`
 	EndTime            time.Time               `gorm:"not null" json:"end_time"`
@@ -24,4 +24,5 @@ type Survey struct {
 	Questions          []Question              `gorm:"foreignKey:SurveyID;constraint:OnDelete:CASCADE;" json:"questions"`
 	UserSurveyRoles    []models.UserSurveyRole `gorm:"foreignKey:SurveyID;constraint:OnDelete:CASCADE;"`
 	VoteVisibilities   []models.VoteVisibility `gorm:"foreignKey:SurveyID;constraint:OnDelete:CASCADE;"`
+	Options            []SurveyOption          `gorm:"foreignKey:SurveyId;constraint:OnDelete:CASCADE;"`
 }
