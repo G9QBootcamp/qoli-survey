@@ -19,7 +19,7 @@ type User struct {
 	LastName      string         `json:"last_name"`
 	DateOfBirth   time.Time      `json:"date_of_birth"`
 	City          string         `json:"city"`
-	WalletBalance float64        `gorm:"default:0"`
+	WalletBalance float64        `json:"balance" db:"balance"`
 	EmailVerified bool           `gorm:"default:false"`
 	MaxSurveys    int
 	GlobalRole    Role `gorm:"foreignKey:RoleID;references:ID;constraint:OnDelete:CASCADE;"`

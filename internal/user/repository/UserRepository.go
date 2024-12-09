@@ -22,6 +22,8 @@ type IUserRepository interface {
 	UpdateUser(ctx context.Context, user *models.User) (*models.User, error)
 	GetUserCount(ctx context.Context) (int64, error)
 	GetRoleByName(ctx context.Context, roleName string) (*models.Role, error)
+	CreateTransaction(ctx context.Context, transaction *models.Transaction) error
+	GetBalance(ctx context.Context, userID uint) (float64, error)
 }
 
 type UserRepository struct {
@@ -99,10 +101,12 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	user.WalletBalance = 100
 	err := r.db.GetDb().WithContext(ctx).Create(&user).Error
 	if err != nil {
 		r.logger.Error(logging.Database, logging.Insert, "create user error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 	}
+
 	return user, err
 }
 
@@ -151,4 +155,25 @@ func (r *UserRepository) GetRoleByName(ctx context.Context, roleName string) (*m
 		return nil, err
 	}
 	return &role, nil
+}
+
+// new transaction
+func (r *UserRepository) CreateTransaction(ctx context.Context, transaction *models.Transaction) error {
+	return r.db.GetDb().WithContext(ctx).Create(transaction).Error
+}
+
+// finding balance using transaction table
+func (r *UserRepository) GetBalance(ctx context.Context, userID uint) (float64, error) {
+	var result struct {
+		Total float64
+	}
+	err := r.db.GetDb().WithContext(ctx).
+		Model(&models.Transaction{}).
+		Select("SUM(amount) as total").
+		Where("buyer_id = ? OR seller_id = ?", userID, userID).
+		Scan(&result).Error
+	if err != nil {
+		return 0, err
+	}
+	return result.Total, nil
 }

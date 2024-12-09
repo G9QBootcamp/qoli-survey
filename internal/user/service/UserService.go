@@ -21,6 +21,8 @@ type IUserService interface {
 	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
 	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 	GetUser(c context.Context, id uint) (*dto.UserResponse, error)
+	GetBalance(ctx context.Context, userID uint) (float64, error)
+	ProcessTransaction(ctx context.Context, buyerID, sellerID uint, amount float64, voteCount int) error
 }
 type UserService struct {
 	conf   *config.Config
@@ -154,4 +156,37 @@ func (s *UserService) SetMaxSurveys(ctx context.Context, userID string, maxSurve
 		return err
 	}
 	return nil
+}
+
+// buy and sell vote
+func (s *UserService) ProcessTransaction(ctx context.Context, buyerID, sellerID uint, amount float64, voteCount int) error {
+	if buyerID == sellerID {
+		s.logger.Error(logging.Internal, logging.FailedToUpdateUser, "seller and buyer cannot be the same", map[logging.ExtraKey]interface{}{
+			logging.Service:      "UserService",
+			logging.ErrorMessage: "buyer and seller cannot be the same user",
+		})
+	}
+
+	transaction := &models.Transaction{
+		BuyerID:   buyerID,
+		SellerID:  sellerID,
+		Amount:    amount,
+		VoteCount: voteCount,
+	}
+
+	if err := s.repo.CreateTransaction(ctx, transaction); err != nil {
+		s.logger.Error(logging.Database, logging.SubCategory(logging.Internal), "failed to save transaction", map[logging.ExtraKey]interface{}{
+			logging.Service:      "UserService",
+			logging.ErrorMessage: err.Error(),
+		})
+
+		return err
+	}
+
+	return nil
+}
+
+// calculate user's balance
+func (s *UserService) GetBalance(ctx context.Context, userID uint) (float64, error) {
+	return s.repo.GetBalance(ctx, userID)
 }

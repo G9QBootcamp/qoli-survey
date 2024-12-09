@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
@@ -106,4 +107,28 @@ func (h *UserHandler) RestrictUserSurveys(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Max surveys updated successfully"})
+}
+
+func (h *UserHandler) ProcessTransaction(c echo.Context) error {
+	buyerID, _ := strconv.Atoi(c.FormValue("buyer_id"))
+	sellerID, _ := strconv.Atoi(c.FormValue("seller_id"))
+	amount, _ := strconv.ParseFloat(c.FormValue("amount"), 64)
+	voteCount, _ := strconv.Atoi(c.FormValue("vote_count"))
+
+	err := h.service.ProcessTransaction(c.Request().Context(), uint(buyerID), uint(sellerID), amount, voteCount)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "transaction completed"})
+}
+
+func (h *UserHandler) GetBalance(c echo.Context) error {
+	userID, _ := strconv.Atoi(c.Param("user_id"))
+	balance, err := h.service.GetBalance(c.Request().Context(), uint(userID))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]float64{"balance": balance})
 }
