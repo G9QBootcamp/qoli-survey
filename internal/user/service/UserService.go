@@ -21,6 +21,13 @@ type IUserService interface {
 	Login(c context.Context, req dto.LoginRequest) (string, time.Time, error)
 	UpdateUserProfile(c context.Context, userID uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 	GetUser(c context.Context, id uint) (*dto.UserResponse, error)
+	Deposit(ctx context.Context, userID uint, amount float64) error
+	Transfer(ctx context.Context, senderID, receiverID uint, amount float64) error
+	Withdraw(ctx context.Context, userID uint, amount float64) error
+	BuyVote(ctx context.Context, buyerID, sellerID uint, voteID uint, amount float64) error
+	SellVote(ctx context.Context, sellerID, buyerID uint, voteID uint, amount float64) error
+	GetVoterID(ctx context.Context, voteID uint) (uint, error)
+	GetBalance(ctx context.Context, userID uint) (float64, error)
 }
 type UserService struct {
 	conf   *config.Config
@@ -154,4 +161,49 @@ func (s *UserService) SetMaxSurveys(ctx context.Context, userID string, maxSurve
 		return err
 	}
 	return nil
+}
+
+// Deposit money to user's wallet
+func (s *UserService) Deposit(ctx context.Context, userID uint, amount float64) error {
+	return s.repo.Deposit(ctx, userID, amount)
+}
+
+// Withdraw money from user's wallet
+func (s *UserService) Withdraw(ctx context.Context, userID uint, amount float64) error {
+	return s.repo.Withdraw(ctx, userID, amount)
+}
+
+func (s *UserService) Transfer(ctx context.Context, senderID, receiverID uint, amount float64) error {
+	return s.repo.Transfer(ctx, senderID, receiverID, amount)
+}
+
+func (s *UserService) BuyVote(ctx context.Context, buyerID, sellerID uint, voteID uint, amount float64) error {
+	return s.SellVote(ctx, sellerID, buyerID, voteID, amount)
+}
+
+func (s *UserService) SellVote(ctx context.Context, sellerID, buyerID uint, voteID uint, amount float64) error {
+	err := s.repo.Withdraw(ctx, buyerID, amount)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.Deposit(ctx, sellerID, amount)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.UpdateVoteVoter(ctx, buyerID, voteID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *UserService) GetVoterID(ctx context.Context, voteID uint) (uint, error) {
+	return s.repo.GetVoterID(ctx, voteID)
+}
+
+func (s *UserService) GetBalance(ctx context.Context, userID uint) (float64, error) {
+	return s.repo.GetBalance(ctx, userID)
 }
