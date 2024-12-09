@@ -11,15 +11,20 @@ import (
 )
 
 type SurveyRouter struct {
-	conf        *config.Config
-	db          db.DbService
-	serverGroup *echo.Group
-	handler     *handler.SurveyHandler
-	logger      logging.Logger
+	conf          *config.Config
+	db            db.DbService
+	serverGroup   *echo.Group
+	handler       *handler.SurveyHandler
+	reportHandler *handler.ReportHandler
+	logger        logging.Logger
 }
 
 func NewSurveyRouter(conf *config.Config, db db.DbService, serverGroup *echo.Group, logger logging.Logger, notificationService notification.INotificationService) *SurveyRouter {
-	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup, handler: handler.NewSurveyHandler(conf, db, logger, notificationService), logger: logger}
+	return &SurveyRouter{conf: conf, db: db, serverGroup: serverGroup,
+		handler:       handler.NewSurveyHandler(conf, db, logger, notificationService),
+		reportHandler: handler.NewReportHandler(conf, db, logger),
+		logger:        logger,
+	}
 }
 
 func (r *SurveyRouter) RegisterRoutes() {
@@ -29,7 +34,10 @@ func (r *SurveyRouter) RegisterRoutes() {
 	g.GET("/:survey_id", r.handler.GetSurvey, middlewares.CheckPermission("view_survey", r.db))
 	g.GET("", r.handler.GetSurveys, middlewares.CheckPermission("view_survey", r.db))
 	g.GET("/:survey_id/start", r.handler.StartSurvey, middlewares.CheckPermission("vote", r.db))
+	g.GET("/:survey_id/reports", r.reportHandler.GetSurveyReport, middlewares.CheckPermission("view_survey_reports", r.db))
+	g.POST("/reports-to-csv", r.reportHandler.GenerateAllSurveysReport)
 
 	questionRouter := NewQuestionRouter(r.conf, r.db, g, r.logger)
 	questionRouter.RegisterRoutes()
+
 }
