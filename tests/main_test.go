@@ -8,6 +8,8 @@ import (
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
+	surveyRepository "github.com/G9QBootcamp/qoli-survey/internal/survey/repository"
+	surveyService "github.com/G9QBootcamp/qoli-survey/internal/survey/service"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/repository"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/service"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
@@ -17,6 +19,9 @@ import (
 var testDbService db.DbService
 var testUserRepo repository.IUserRepository
 var testUserService service.IUserService
+
+var testReportRepo surveyRepository.IReportRepository
+var testReportService surveyService.IReportService
 
 func TestMain(m *testing.M) {
 
@@ -36,6 +41,10 @@ func TestMain(m *testing.M) {
 	defer testDbService.Close()
 	testUserRepo = repository.NewUserRepository(testDbService, logger)
 	testUserService = service.New(cfg, testUserRepo, logger)
+
+	testReportRepo = surveyRepository.NewReportRepository(testDbService, logger)
+	testReportService = surveyService.NewReportService(cfg, testReportRepo, logger)
+
 	code := m.Run()
 
 	os.Exit(code)
