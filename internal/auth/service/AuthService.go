@@ -78,7 +78,7 @@ func (s *AuthService) Signup(c context.Context, req dto.SignupRequest) (*userMod
 	}
 
 	if userCount == 0 {
-		superAdminRole, err := s.userRepo.GetRoleByName(c, "Super Admin")
+		superAdminRole, err := s.userRepo.GetRoleByName(c, "SuperAdmin")
 		if err != nil {
 			s.logger.Error(logging.Database, logging.FailedToGetRole, "failed to fetch super admin role", map[logging.ExtraKey]interface{}{logging.Service: "UserService", logging.ErrorMessage: err.Error()})
 		}
