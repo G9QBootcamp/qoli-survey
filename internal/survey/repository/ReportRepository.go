@@ -22,6 +22,10 @@ type IReportRepository interface {
 	GetCorrectChoiceByQuestionID(ctx context.Context, qid uint) (*models.Choice, error)
 	GetChoicesByQuestionID(ctx context.Context, qid uint) ([]models.Choice, error)
 	GetGivenAnswerCountByQuestionID(ctx context.Context, qid uint, answer string) (int64, error)
+	GetParticipationCount(ctx context.Context, surveyId uint, userId uint) (int64, error)
+	GetTotalParticipants(ctx context.Context, surveyId uint) ([]userModels.User, error)
+	GetAverageResponseTime(ctx context.Context, surveyId uint) (float64, error)
+	GetResponseDispersionByHour(ctx context.Context, surveyId uint) (map[int]int, error)
 }
 
 type ReportRepository struct {

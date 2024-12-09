@@ -17,6 +17,9 @@ type IReportService interface {
 	GetCorrectAnswerPercentage(ctx context.Context, surveyId uint) ([]dto.CorrectAnswerPercentageToShow, error)
 	SuddenlyFinishedParticipationPercentage(ctx context.Context, surveyId uint) (float64, error)
 	GetChoicesByPercentage(ctx context.Context, surveyId uint) ([]dto.QuestionReport, error)
+	GetMultipleParticipationCount(ctx context.Context, surveyId uint) ([]dto.ParticipationReport, error)
+	GetAverageResponseTime(ctx context.Context, surveyId uint) (float64, error)
+	GetResponseDispersionByHour(ctx context.Context, surveyId uint) ([]dto.HourDispersionDTO, error)
 }
 type ReportService struct {
 	conf   *config.Config
@@ -163,4 +166,25 @@ func (s *ReportService) GetChoicesByPercentage(ctx context.Context, surveyId uin
 		}
 	}
 	return res, nil
+}
+
+func (s *ReportService) GetAverageResponseTime(ctx context.Context, surveyId uint) (float64, error) {
+	return s.repo.GetAverageResponseTime(ctx, surveyId)
+}
+
+func (s *ReportService) GetResponseDispersionByHour(ctx context.Context, surveyId uint) ([]dto.HourDispersionDTO, error) {
+	dispersionData, err := s.repo.GetResponseDispersionByHour(ctx, surveyId)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []dto.HourDispersionDTO
+	for hour, count := range dispersionData {
+		result = append(result, dto.HourDispersionDTO{
+			Hour:  hour,
+			Count: count,
+		})
+	}
+
+	return result, nil
 }
