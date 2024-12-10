@@ -77,6 +77,120 @@ func (h *SurveyHandler) CreateSurvey(c echo.Context) error {
 	return c.JSON(http.StatusCreated, survey)
 }
 
+func (h *SurveyHandler) CreateSurveyOption(c echo.Context) error {
+	var req dto.SurveyOptionCreateRequest
+
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	survey_id := c.Param("survey_id")
+	iSurveyId, err := strconv.Atoi(survey_id)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in create option survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in create survey api", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	survey, err := h.service.CreateOption(c.Request().Context(), userID, uint(iSurveyId), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, survey)
+}
+
+func (h *SurveyHandler) GetSurveyOptions(c echo.Context) error {
+
+	userID, ok := c.Get("userID").(uint)
+
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+	survey_id := c.Param("survey_id")
+	iSurveyId, err := strconv.Atoi(survey_id)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in create option survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+
+	response, err := h.service.GetOptions(c.Request().Context(), dto.SurveyOptionsGetRequest{SurveyId: uint(iSurveyId)})
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, response)
+
+}
+
+func (h *SurveyHandler) UpdateSurveyOption(c echo.Context) error {
+	var req dto.SurveyOptionCreateRequest
+
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	optionId := c.Param("option_id")
+	iOptionId, err := strconv.Atoi(optionId)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in update option survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in create survey api", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	survey, err := h.service.UpdateOption(c.Request().Context(), uint(iOptionId), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, survey)
+}
+
+func (h *SurveyHandler) DeleteSurveyOption(c echo.Context) error {
+
+	userID, ok := c.Get("userID").(uint)
+
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+	optionId := c.Param("option_id")
+	iOptionId, err := strconv.Atoi(optionId)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in update option survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+
+	err = h.service.DeleteOption(c.Request().Context(), uint(iOptionId))
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, nil)
+
+}
+
 func (h *SurveyHandler) GetSurveys(c echo.Context) error {
 	var req dto.SurveysGetRequest
 
@@ -156,6 +270,109 @@ func (h *SurveyHandler) DeleteSurvey(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, nil)
+}
+func (h *SurveyHandler) DeleteVote(c echo.Context) error {
+	survey_id := c.Param("survey_id")
+
+	vote_id := c.Param("vote_id")
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+	iSurveyId, err := strconv.Atoi(survey_id)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in delete survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+
+	survey, err := h.service.GetSurvey(c.Request().Context(), uint(iSurveyId))
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in delete survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+	if survey == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "survey not found"})
+
+	}
+
+	ivote_id, err := strconv.Atoi(vote_id)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in delete vote", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid vote id"})
+	}
+
+	vote, err := h.service.GetVote(c.Request().Context(), uint(ivote_id))
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in delete vote", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid vote id"})
+	}
+
+	if vote == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "vote not found"})
+
+	}
+
+	role, _ := c.Get("role").(string)
+
+	if vote.VoterID != userID && role != "SuperAdmin" {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "you are not allowed"})
+
+	}
+
+	for _, v := range survey.Options {
+
+		if v.Name == "vote_deletion_limit_hours" {
+			hours, err := strconv.Atoi(v.Value)
+			if err != nil {
+				continue
+			}
+
+			if vote.CreatedAt.Add(time.Hour * time.Duration(hours)).Before(time.Now()) {
+				return c.JSON(http.StatusForbidden, map[string]string{"error": "you are not allowed because of vote_deletion_limit_hours"})
+			}
+		}
+
+	}
+	err = h.service.DeleteVote(c.Request().Context(), uint(ivote_id))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+func (h *SurveyHandler) UpdateSurvey(c echo.Context) error {
+	survey_id := c.Param("survey_id")
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	iSurveyId, err := strconv.Atoi(survey_id)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in update survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+
+	req := dto.SurveyUpdateRequest{}
+
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	if err := c.Validate(&req); err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in update survey api", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+
+	survey, err := h.service.UpdateSurvey(c.Request().Context(), uint(iSurveyId), req)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, survey)
 }
 func (h *SurveyHandler) StartSurvey(c echo.Context) error {
 
@@ -440,4 +657,80 @@ func (h *SurveyHandler) GetVisibleVoteUsers(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, users)
+}
+func (h *SurveyHandler) SurveyVotes(c echo.Context) error {
+
+	survey_id := c.Param("survey_id")
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	iSurveyId, err := strconv.Atoi(survey_id)
+
+	if err != nil {
+		h.logger.Warn(logging.Validation, logging.Api, "validation error in start survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error(), logging.UserId: userID})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid survey id"})
+	}
+
+	survey, err := h.service.GetSurvey(c.Request().Context(), uint(iSurveyId))
+	if err != nil {
+		h.logger.Error(logging.General, logging.Api, "Failed to get survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if survey == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "survey not found"})
+
+	}
+
+	role, _ := c.Get("role").(string)
+
+	for _, v := range survey.Options {
+
+		if v.Name == "votes_visibility" && v.Value == "invisible" {
+			return c.JSON(http.StatusForbidden, map[string]string{"message": "results of this survey is invisible"})
+		}
+
+		if v.Name == "votes_visibility" && v.Value == "admin" && role != "SuperAdmin" && survey.UserId != userID {
+			return c.JSON(http.StatusForbidden, map[string]string{"message": "results of this survey is visible for admin and owner os survey"})
+		}
+
+	}
+
+	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		h.logger.Error(logging.General, logging.Api, "Failed to upgrade connection", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return err
+	}
+	defer conn.Close()
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		for {
+			_, _, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					h.logger.Error(logging.General, logging.Api, "Unexpected close websocket connection error", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				} else {
+					h.logger.Info(logging.General, logging.Api, "Websocket Connection closed", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				}
+				return
+			}
+		}
+	}()
+	for {
+		select {
+		case <-done:
+			return nil
+		default:
+			votes, err := h.service.GetSurveyVotes(c.Request().Context(), uint(iSurveyId))
+			if err != nil {
+				h.logger.Error(logging.General, logging.Api, "Failed to get survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				return err
+			}
+			conn.WriteJSON(votes)
+			time.Sleep(2 * time.Second)
+		}
+	}
 }
