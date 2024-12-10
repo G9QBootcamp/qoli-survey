@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
@@ -199,4 +202,61 @@ func formatParticipationReport(participations []dto.ParticipationReport) string 
 		results = append(results, fmt.Sprintf("%d: %d", p.UserID, p.Count))
 	}
 	return strings.Join(results, "; ")
+}
+
+func (h *ReportHandler) WebSocketResults(c echo.Context) error {
+	surveyID := c.Param("survey_id")
+	userID, ok := c.Get("userID").(uint)
+	if !ok || userID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
+	iSurveyId, _ := strconv.Atoi(surveyID)
+
+	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		h.logger.Error(logging.General, logging.Api, "Failed to upgrade connection", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+		return err
+	}
+	defer conn.Close()
+
+	// Channel to signal disconnection
+	done := make(chan struct{})
+
+	// Start a goroutine to read messages (to detect disconnection)
+	go func() {
+		defer close(done)
+		for {
+			_, _, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					h.logger.Error(logging.General, logging.Api, "Unexpected close websocket connection error", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				} else {
+					h.logger.Info(logging.General, logging.Api, "Websocket Connection closed", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				}
+				return
+			}
+		}
+	}()
+
+	// Listen for real-time updates about the survey
+	for {
+		select {
+		case <-done:
+			return nil // Exit when the connection is closed
+		default:
+			// Here you could emit real-time updates on survey responses or status changes
+			report, err := h.service.GetReportAggregateService(c.Request().Context(), uint(iSurveyId))
+			if err != nil {
+				h.logger.Error(logging.General, logging.Api, "Failed to get survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				return err
+			}
+			err = conn.WriteJSON(report)
+			if err != nil {
+				h.logger.Error(logging.General, logging.Api, "error in writing to websocket connection", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				return err
+			}
+			time.Sleep(2 * time.Second)
+		}
+	}
 }
