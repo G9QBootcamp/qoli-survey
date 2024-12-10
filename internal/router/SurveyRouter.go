@@ -48,6 +48,7 @@ func (r *SurveyRouter) RegisterRoutes() {
 	g.PATCH("/:survey_id/options/:option_id", r.handler.UpdateSurveyOption, middlewares.CheckPermission("edit_survey", r.db))
 	g.GET("/:survey_id/options", r.handler.GetSurveyOptions, middlewares.CheckPermission("view_survey", r.db))
 
+	g.POST("/upload", r.handler.UploadMedia)
 	questionRouter := NewQuestionRouter(r.conf, r.db, g, r.logger)
 	questionRouter.RegisterRoutes()
 
