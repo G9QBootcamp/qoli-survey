@@ -3,6 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/dto"
@@ -48,6 +52,8 @@ type ISurveyRepository interface {
 	DeleteOption(c context.Context, id uint) error
 	GetOptionByID(ctx context.Context, id uint) (*models.SurveyOption, error)
 	GetOptions(ctx context.Context, req *dto.RepositoryRequest) (options []*models.SurveyOption, err error)
+
+	SaveFile(fileName string, fileData []byte) (string, error)
 }
 
 type SurveyRepository struct {
@@ -334,4 +340,20 @@ func (r *SurveyRepository) GetSurveyVotes(ctx context.Context, id uint) ([]*mode
 		Where("question_id IN (SELECT id FROM questions WHERE survey_id = ?)", id).
 		Find(&votes).Error
 	return votes, err
+}
+
+func (r *SurveyRepository) SaveFile(fileName string, fileData []byte) (string, error) {
+	timestamp := time.Now().Unix()
+	uniqueFileName := fmt.Sprintf("%d_%s", timestamp, fileName)
+	fullPath := filepath.Join("github.com/G9QBootcamp/qoli-survey", "questions", uniqueFileName)
+
+	if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
+		return "", err
+	}
+
+	if err := os.WriteFile(fullPath, fileData, 0644); err != nil {
+		return "", err
+	}
+
+	return fullPath, nil
 }

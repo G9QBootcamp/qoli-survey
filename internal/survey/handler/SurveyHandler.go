@@ -734,3 +734,18 @@ func (h *SurveyHandler) SurveyVotes(c echo.Context) error {
 		}
 	}
 }
+
+func (h *SurveyHandler) UploadMedia(c echo.Context) error {
+	fileHeader, err := c.FormFile("file")
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "file is required"})
+	}
+
+	filePath, err := h.service.UploadMedia(fileHeader)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"file_path": filePath})
+}

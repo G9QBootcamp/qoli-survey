@@ -1,9 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"mime/multipart"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/config"
@@ -39,6 +43,8 @@ type ISurveyService interface {
 	UpdateOption(c context.Context, id uint, req dto.SurveyOptionCreateRequest) (*dto.SurveyOptionResponse, error)
 	DeleteOption(c context.Context, id uint) error
 	GetOptions(c context.Context, req dto.SurveyOptionsGetRequest) (response []*dto.SurveyOptionResponse, err error)
+
+	UploadMedia(fileHeader *multipart.FileHeader) (string, error)
 }
 type SurveyService struct {
 	conf                *config.Config
@@ -375,6 +381,7 @@ func (s *SurveyService) GetSurveyQuestionsInOrder(c context.Context, surveyId ui
 	survey, err := s.repo.GetSurveyByID(c, surveyId)
 
 	if err != nil {
+
 		return nil, err
 	}
 
@@ -532,4 +539,26 @@ func (s *SurveyService) GetSurveyVotes(c context.Context, surveyId uint) (respon
 	}
 
 	return response, util.ConvertTypes(s.logger, votes, &response)
+}
+
+func (s *SurveyService) UploadMedia(fileHeader *multipart.FileHeader) (string, error) {
+	allowedExtensions := map[string]bool{".jpg": true, ".png": true, ".mp4": true, ".mp3": true}
+	fileExt := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	if !allowedExtensions[fileExt] {
+		return "", fmt.Errorf("invalid file type: %s", fileExt)
+	}
+
+	// Read file
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(file); err != nil {
+		return "", err
+	}
+
+	return s.repo.SaveFile(fileHeader.Filename, buf.Bytes())
 }
