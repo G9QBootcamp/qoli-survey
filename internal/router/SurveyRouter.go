@@ -37,7 +37,7 @@ func (r *SurveyRouter) RegisterRoutes() {
 	g.GET("/:survey_id/start", r.handler.StartSurvey, middlewares.CheckPermission("vote", r.db), middlewares.CanUserVoteOnSurvey(r.db))
 	g.GET("/:survey_id/reports", r.reportHandler.GetSurveyReport, middlewares.CheckPermission("view_survey_reports", r.db))
 	g.POST("/reports-to-csv", r.reportHandler.GenerateAllSurveysReport)
-	g.GET("/votes/:survey_id/user/:user_id", r.handler.GetUserVotes)
+	g.GET("/:survey_id/users/:user_id/votes", r.handler.GetUserVotes)
 	g.GET("/:survey_id/visible-vote-users", r.handler.GetVisibleVoteUsers)
 
 	g.DELETE("/:survey_id/votes/:vote_id", r.handler.DeleteVote, middlewares.CheckPermission("vote", r.db))
