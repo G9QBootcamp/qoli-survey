@@ -206,7 +206,7 @@ func formatParticipationReport(participations []dto.ParticipationReport) string 
 
 func (h *ReportHandler) WebSocketResults(c echo.Context) error {
 	surveyID := c.Param("survey_id")
-	userID, ok := c.Request().Context().Value("userID").(uint)
+	userID, ok := c.Get("userID").(uint)
 	if !ok || userID == 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
 	}
@@ -251,22 +251,10 @@ func (h *ReportHandler) WebSocketResults(c echo.Context) error {
 				h.logger.Error(logging.General, logging.Api, "Failed to get survey", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
 				return err
 			}
-			if true {
-				// Send details about who voted for what if the survey is not anonymous
-				// Example data; replace with actual implementation
-				err = conn.WriteJSON(report)
-				if err != nil {
-					h.logger.Error(logging.General, logging.Api, "error in writing to websocket connection", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
-					return err
-				}
-			} else {
-				err = conn.WriteJSON(map[string]interface{}{
-					"message": "survey is anonymous",
-				})
-				if err != nil {
-					h.logger.Error(logging.General, logging.Api, "error in writing to websocket connection", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
-					return err
-				}
+			err = conn.WriteJSON(report)
+			if err != nil {
+				h.logger.Error(logging.General, logging.Api, "error in writing to websocket connection", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+				return err
 			}
 			time.Sleep(2 * time.Second)
 		}
