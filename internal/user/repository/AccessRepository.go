@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"time"
-	"github.com/G9QBootcamp/qoli-survey/internal/user/dto"
 
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	"github.com/G9QBootcamp/qoli-survey/internal/user/models"

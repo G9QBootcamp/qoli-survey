@@ -404,7 +404,11 @@ func (h *SurveyHandler) readAnswers(c context.Context, conn *websocket.Conn, par
 }
 
 func (h *SurveyHandler) GetUserVotes(c echo.Context) error {
-	viewerID := c.Get("user_id").(uint)
+	viewerID, ok := c.Get("userID").(uint)
+	if !ok || viewerID == 0 {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "userID not found"})
+	}
+
 	surveyID, err := strconv.ParseUint(c.Param("survey_id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid survey_id"})
