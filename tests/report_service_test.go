@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/G9QBootcamp/qoli-survey/internal/survey/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +51,7 @@ func TestGetChoicesByPercentage(t *testing.T) {
 	ctx := context.Background()
 
 	surveyID := uint(1)
-	choices, err := service.GetChoicesByPercentage(ctx, surveyID)
+	choices, err := testReportService.GetChoicesByPercentage(ctx, surveyID)
 
 	if err != nil {
 		t.Fatalf("Error in GetChoicesByPercentage: %s", err.Error())
