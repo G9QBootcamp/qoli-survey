@@ -40,14 +40,11 @@ type Permission struct {
 }
 
 type VoteVisibilityCreateRequest struct {
-	SurveyID     uint `json:"survey_id" validate:"required"`
-	ViewerID     uint `json:"viewer_id" validate:"required"`     // User allowed to view votes
-	RespondentID uint `json:"respondent_id" validate:"required"` // User whose votes can be viewed
+	RespondentIDs []int `json:"respondent_ids" validate:"required"` // User whose votes can be viewed
 }
 
 type VoteVisibilityResponse struct {
-	ID           uint `json:"id"`
-	SurveyID     uint `json:"survey_id"`
-	ViewerID     uint `json:"viewer_id"`     // User allowed to view votes
-	RespondentID uint `json:"respondent_id"` // User whose votes can be viewed
+	SurveyID      int   `json:"survey_id"`
+	ViewerID      int   `json:"viewer_id"`      // User allowed to view votes
+	RespondentIDs []int `json:"respondent_ids"` // User whose votes can be viewed
 }

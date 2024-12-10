@@ -36,4 +36,12 @@ func (r *AccessRouter) RegisterRoutes(db db.DbService) {
 		r.handler.DeleteUserSurveyRole,
 		middlewares.CheckPermission("assign_and_remove_survey_roles", db),
 	)
+
+	r.serverGroup.POST("/access/surveys/:survey_id/viewer/:viewer_id/visible-votes",
+		r.handler.CreateVoteVisibility,
+		middlewares.CheckPermission("", db))
+
+	r.serverGroup.GET("/access/surveys/:survey_id/visible-votes/",
+		r.handler.CreateVoteVisibility,
+		middlewares.CheckPermission("", db))
 }

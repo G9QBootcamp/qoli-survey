@@ -19,7 +19,7 @@ type IAccessRepository interface {
 	DeleteUserSurveyRole(ctx context.Context, surveyID uint, userID uint, roleID uint) error
 	GetUserRolesForSurvey(ctx context.Context, userID, surveyID uint) ([]models.UserSurveyRole, error)
 	GetRoleByID(ctx context.Context, roleID uint) (*models.Role, error)
-	CreateVoteVisibility(ctx context.Context, request dto.VoteVisibilityCreateRequest) (models.VoteVisibility, error)
+	CreateVoteVisibility(ctx context.Context, surveyID uint, viewerID uint, respondentID uint) (models.VoteVisibility, error)
 	GetVoteVisibilityById(ctx context.Context, id uint) (models.VoteVisibility, error)
 	GetVoteVisibilityBySurveyId(ctx context.Context, surveyId uint) ([]models.VoteVisibility, error)
 	DeleteVoteVisibilityById(ctx context.Context, id uint) error
@@ -98,11 +98,13 @@ func (r *AccessRepository) GetRoleByID(ctx context.Context, roleID uint) (*model
 		return nil, nil
 	}
 	return &role, err
-func (r *AccessRepository) CreateVoteVisibility(ctx context.Context, request dto.VoteVisibilityCreateRequest) (models.VoteVisibility, error) {
+}
+
+func (r *AccessRepository) CreateVoteVisibility(ctx context.Context, surveyID uint, viewerID uint, respondentID uint) (models.VoteVisibility, error) {
 	vv := models.VoteVisibility{
-		SurveyID:     request.SurveyID,
-		ViewerID:     request.ViewerID,
-		RespondentID: request.RespondentID,
+		SurveyID:     surveyID,
+		ViewerID:     viewerID,
+		RespondentID: respondentID,
 	}
 
 	err := r.db.GetDb().WithContext(ctx).Create(&vv).Error
