@@ -31,6 +31,8 @@ type ISurveyService interface {
 	CommitVote(c context.Context, vote models.Vote) error
 	DeleteVote(c context.Context, id uint) error
 	GetSurveyQuestionsInOrder(c context.Context, surveyId uint) (questionsAnswerMap dto.QuestionsAnswerMap, err error)
+	GetVotes(surveyID, viewerID, respondentID uint) ([]map[string]interface{}, error)
+	GetVisibleVoteUsers(surveyID, viewerID uint) ([]map[string]interface{}, error)
 	GetSurveyVotes(c context.Context, surveyId uint) ([]dto.GetVoteResponse, error)
 
 	CreateOption(c context.Context, userId uint, surveyId uint, req dto.SurveyOptionCreateRequest) (*dto.SurveyOptionResponse, error)
@@ -440,7 +442,40 @@ func (s *SurveyService) GetSurveyQuestionsInOrder(c context.Context, surveyId ui
 	}
 
 	return questionsAnswerMap, nil
+}
 
+func (s *SurveyService) GetVotes(surveyID, viewerID, respondentID uint) ([]map[string]interface{}, error) {
+	hasPermission, err := s.repo.CheckVoteVisibility(surveyID, viewerID, respondentID)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPermission {
+		return nil, errors.New("viewer does not have permission to view respondent's votes")
+	}
+
+	votes, err := s.repo.GetVotes(surveyID, respondentID)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]map[string]interface{}, len(votes))
+	for i, vote := range votes {
+		response[i] = map[string]interface{}{
+			"question_id": vote.QuestionID,
+			"answer":      vote.Answer,
+		}
+	}
+
+	return response, nil
+}
+
+func (s *SurveyService) GetVisibleVoteUsers(surveyID, viewerID uint) ([]map[string]interface{}, error) {
+	users, err := s.repo.GetVisibleVoteUsers(surveyID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (s *SurveyService) CreateOption(c context.Context, userId uint, surveyId uint, req dto.SurveyOptionCreateRequest) (response *dto.SurveyOptionResponse, err error) {

@@ -18,6 +18,10 @@ type IAccessRepository interface {
 	DeleteUserSurveyRole(ctx context.Context, surveyID uint, userID uint, roleID uint) error
 	GetUserRolesForSurvey(ctx context.Context, userID, surveyID uint) ([]models.UserSurveyRole, error)
 	GetRoleByID(ctx context.Context, roleID uint) (*models.Role, error)
+	CreateVoteVisibility(ctx context.Context, surveyID uint, viewerID uint, respondentID uint) (models.VoteVisibility, error)
+	GetVoteVisibilityById(ctx context.Context, id uint) (models.VoteVisibility, error)
+	GetVoteVisibilityBySurveyId(ctx context.Context, surveyId uint) ([]models.VoteVisibility, error)
+	DeleteVoteVisibilityById(ctx context.Context, id uint) error
 }
 
 type AccessRepository struct {
@@ -93,4 +97,44 @@ func (r *AccessRepository) GetRoleByID(ctx context.Context, roleID uint) (*model
 		return nil, nil
 	}
 	return &role, err
+}
+
+func (r *AccessRepository) CreateVoteVisibility(ctx context.Context, surveyID uint, viewerID uint, respondentID uint) (models.VoteVisibility, error) {
+	vv := models.VoteVisibility{
+		SurveyID:     surveyID,
+		ViewerID:     viewerID,
+		RespondentID: respondentID,
+	}
+
+	err := r.db.GetDb().WithContext(ctx).Create(&vv).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Insert, "CreateVoteVisibility error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return vv, err
+}
+
+func (r *AccessRepository) GetVoteVisibilityById(ctx context.Context, id uint) (models.VoteVisibility, error) {
+	var vv models.VoteVisibility
+	err := r.db.GetDb().WithContext(ctx).Where("id = ?", id).First(&vv).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Insert, "GetVoteVisibilityById error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return vv, err
+}
+
+func (r *AccessRepository) GetVoteVisibilityBySurveyId(ctx context.Context, surveyId uint) ([]models.VoteVisibility, error) {
+	var vvs []models.VoteVisibility
+	err := r.db.GetDb().WithContext(ctx).Where("survey_id = ?", surveyId).Find(&vvs).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Select, "GetVoteVisibilityBySurveyId error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return vvs, err
+}
+
+func (r *AccessRepository) DeleteVoteVisibilityById(ctx context.Context, id uint) error {
+	err := r.db.GetDb().WithContext(ctx).Where("id = ?", id).Delete(&models.VoteVisibility{}).Error
+	if err != nil {
+		r.logger.Error(logging.Database, logging.Delete, "DeleteVoteVisibilityById error in repository ", map[logging.ExtraKey]interface{}{logging.ErrorMessage: err.Error()})
+	}
+	return err
 }

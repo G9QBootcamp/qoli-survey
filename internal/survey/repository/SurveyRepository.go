@@ -7,6 +7,7 @@ import (
 	"github.com/G9QBootcamp/qoli-survey/internal/db"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/dto"
 	"github.com/G9QBootcamp/qoli-survey/internal/survey/models"
+	userModels "github.com/G9QBootcamp/qoli-survey/internal/user/models"
 	"github.com/G9QBootcamp/qoli-survey/pkg/logging"
 	"gorm.io/gorm"
 )
@@ -33,6 +34,10 @@ type ISurveyRepository interface {
 	DeleteQuestionChoices(ctx context.Context, questionId uint) error
 	GetQuestions(ctx context.Context, req *dto.RepositoryRequest) ([]*models.Question, error)
 	GetSurveys(ctx context.Context, req *dto.RepositoryRequest) (questions []*models.Survey, err error)
+	CheckVoteVisibility(surveyID, viewerID, respondentID uint) (bool, error)
+	GetVotes(surveyID, respondentID uint) ([]models.Vote, error)
+	GetVisibleVoteUsers(surveyID, viewerID uint) ([]map[string]interface{}, error)
+	//GetResponses(ctx context.Context, userID uint, surveyID uint, privacyLevel string) ([]models.Choice, error)
 	DeleteVote(c context.Context, id uint) error
 	GetVoteByID(ctx context.Context, id uint) (*models.Vote, error)
 	UpdateSurvey(ctx context.Context, survey *models.Survey) error
@@ -240,7 +245,54 @@ func (r *SurveyRepository) GetQuestionByID(ctx context.Context, id uint) (*model
 
 func (r *SurveyRepository) DeleteQuestionChoices(c context.Context, questionId uint) error {
 	return r.db.GetDb().WithContext(c).Where("question_id = ?", questionId).Delete(&models.Choice{}).Error
+}
 
+func (r *SurveyRepository) CheckVoteVisibility(surveyID, viewerID, respondentID uint) (bool, error) {
+	var visibility userModels.VoteVisibility
+	err := r.db.GetDb().Where("survey_id = ? AND viewer_id = ? AND respondent_id = ?", surveyID, viewerID, respondentID).
+		First(&visibility).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *SurveyRepository) GetVotes(surveyID, respondentID uint) ([]models.Vote, error) {
+	var votes []models.Vote
+
+	err := r.db.GetDb().
+		Preload("Question").
+		Joins("inner join questions on questions.id = votes.question_id").
+		Where("questions.survey_id = ? AND votes.voter_id = ?", surveyID, respondentID).
+		Find(&votes).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return votes, nil
+}
+
+func (r *SurveyRepository) GetVisibleVoteUsers(surveyID, viewerID uint) ([]map[string]interface{}, error) {
+	var visibilityRecords []userModels.VoteVisibility
+
+	err := r.db.GetDb().Where("survey_id = ? AND viewer_id = ?", surveyID, viewerID).
+		Find(&visibilityRecords).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var response []map[string]interface{}
+	for _, record := range visibilityRecords {
+		response = append(response, map[string]interface{}{
+			"respondent_id": record.RespondentID,
+		})
+	}
+
+	return response, nil
 }
 
 func (r *SurveyRepository) CreateOption(ctx context.Context, option *models.SurveyOption) (*models.SurveyOption, error) {

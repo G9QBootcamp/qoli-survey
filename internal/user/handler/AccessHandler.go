@@ -93,3 +93,61 @@ func (h *AccessHandler) DeleteUserSurveyRole(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, nil)
 }
+
+func (h *AccessHandler) CreateVoteVisibility(c echo.Context) error {
+	var req dto.VoteVisibilityCreateRequest
+	surveyID, err1 := strconv.ParseUint(c.Param("survey_id"), 10, 0)
+	viewerID, err2 := strconv.ParseUint(c.Param("viewer_id"), 10, 0)
+
+	if err1 != nil || err2 != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request parameters"})
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+	if err := c.Validate(&req); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": "validation failed"})
+	}
+	res, err := h.service.CreateVoteVisibility(c.Request().Context(), uint(surveyID), uint(viewerID), req)
+	if err != nil {
+		// Handle other errors as internal server errors
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
+// func (h *AccessHandler) GetVoteVisibilityById(c echo.Context) error {
+// 	id, err := strconv.ParseUint(c.Param("id"), 10, 0)
+// 	if err != nil || id <= 0 {
+// 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+// 	}
+// 	res, err := h.service.GetVoteVisibilityById(c.Request().Context(), uint(id))
+// 	if err != nil {
+// 		// Handle other errors as internal server errors
+// 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+// 	}
+// 	return c.JSON(http.StatusOK, res)
+// }
+// func (h *AccessHandler) GetVoteVisibilityBySurveyId(c echo.Context) error {
+// 	id, err := strconv.ParseUint(c.Param("survey_id"), 10, 0)
+// 	if err != nil || id <= 0 {
+// 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+// 	}
+// 	res, err := h.service.GetVoteVisibilityBySurveyId(c.Request().Context(), uint(id))
+// 	if err != nil {
+// 		// Handle other errors as internal server errors
+// 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+// 	}
+// 	return c.JSON(http.StatusOK, res)
+// }
+// func (h *AccessHandler) DeleteVoteVisibility(c echo.Context) error {
+// 	id, err := strconv.ParseUint(c.Param("id"), 10, 0)
+// 	if err != nil || id <= 0 {
+// 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+// 	}
+// 	err = h.service.DeleteVoteVisibilityById(c.Request().Context(), uint(id))
+// 	if err != nil {
+// 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+// 	}
+// 	return c.JSON(http.StatusOK, nil)
+// }

@@ -38,3 +38,13 @@ type Role struct {
 type Permission struct {
 	Action string `json:"action"`
 }
+
+type VoteVisibilityCreateRequest struct {
+	RespondentIDs []int `json:"respondent_ids" validate:"required"` // User whose votes can be viewed
+}
+
+type VoteVisibilityResponse struct {
+	SurveyID      int   `json:"survey_id"`
+	ViewerID      int   `json:"viewer_id"`      // User allowed to view votes
+	RespondentIDs []int `json:"respondent_ids"` // User whose votes can be viewed
+}
